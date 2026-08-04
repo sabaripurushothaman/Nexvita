@@ -8,18 +8,19 @@
 {% endblock %}
 
 {% block content %}
-{% set score = wellness.score if wellness and wellness.score else 0 %}
+{# ── wellness.score is a float e.g. 72.5 — cast to int for display ── #}
+{% set score = (wellness.score | int) if wellness and wellness.score is not none else 0 %}
 
 <!-- ── Top Stats Row ─────────────────────────────────────────── -->
 <section class="insights-stats-row" aria-label="Health overview">
 
-  <!-- Wellness Score Card (always shown) -->
+  <!-- Wellness Score Card (always visible) -->
   <div class="card card-padded insight-score-card anim-fade-up anim-delay-1">
     <div class="score-ring-wrap" aria-label="Health score: {{ score }} out of 100">
       <svg class="score-ring" viewBox="0 0 80 80" role="img">
         <circle class="score-ring__bg" cx="40" cy="40" r="34" />
         <circle class="score-ring__fill" cx="40" cy="40" r="34"
-                style="stroke-dashoffset: {{ 214 - (214 * score / 100) | round(2) }};" />
+                style="stroke-dashoffset: {{ (214 - (214 * score / 100)) | round(2) }};" />
       </svg>
       <div class="score-ring__val">{{ score }}</div>
     </div>
@@ -37,46 +38,48 @@
     </div>
   </div>
 
-  <!-- BMI Trend (conditional) -->
-  {% if bmi_trend %}
+  {# ── bmi_trend dict keys: current_bmi, trend (string: 'increasing'/'decreasing'/'stable') ── #}
+  {% if bmi_trend and bmi_trend.current_bmi %}
   <div class="stat-card bmi anim-fade-up anim-delay-2">
     <div class="stat-card__icon"><svg data-lucide="scale"></svg></div>
     <div class="stat-card__body">
-      <div class="stat-card__value">
-        {{ bmi_trend.current | round(1) if bmi_trend.current else '—' }}
-      </div>
+      <div class="stat-card__value">{{ bmi_trend.current_bmi }}</div>
       <div class="stat-card__label">Current BMI</div>
       <div class="stat-card__sub">
-        {% if bmi_trend.trend > 0 %}
+        {% set bmi_dir = bmi_trend.trend | string | lower %}
+        {% if bmi_dir == 'increasing' %}
           <svg data-lucide="trending-up" class="trend-icon trend-up"></svg> Increasing
-        {% elif bmi_trend.trend < 0 %}
+        {% elif bmi_dir == 'decreasing' %}
           <svg data-lucide="trending-down" class="trend-icon trend-down"></svg> Decreasing
-        {% else %}Stable{% endif %}
+        {% else %}
+          Stable
+        {% endif %}
       </div>
     </div>
   </div>
   {% endif %}
 
-  <!-- Blood Pressure Trend (conditional) -->
-  {% if bp_trend %}
+  {# ── bp_trend dict keys: systolic.current, diastolic.current, overall_trend ── #}
+  {% if bp_trend and bp_trend.systolic and bp_trend.systolic.current %}
   <div class="stat-card bp anim-fade-up anim-delay-3">
     <div class="stat-card__icon"><svg data-lucide="activity"></svg></div>
     <div class="stat-card__body">
       <div class="stat-card__value">
-        {{ bp_trend.avg_systolic | int if bp_trend.avg_systolic else '—' }}<span class="stat-card__unit">mmHg</span>
+        {{ bp_trend.systolic.current | int }}<span class="stat-card__unit">mmHg</span>
       </div>
       <div class="stat-card__label">Avg Systolic BP</div>
       <div class="stat-card__sub">
-        {% if bp_trend.status == 'normal' %}<span class="text-primary">Normal range</span>
-        {% elif bp_trend.status == 'elevated' %}<span class="text-warning">Elevated</span>
+        {% set bp_dir = bp_trend.systolic.trend | string | lower %}
+        {% if bp_dir == 'stable' %}<span class="text-primary">Normal range</span>
+        {% elif bp_dir == 'increasing' %}<span class="text-warning">Elevated</span>
         {% else %}<span class="text-danger">High</span>{% endif %}
       </div>
     </div>
   </div>
   {% endif %}
 
-  <!-- Diabetes Risk (conditional) -->
-  {% if diabetes_risk %}
+  {# ── diabetes_risk dict keys: risk_percentage (float), risk_level (str) ── #}
+  {% if diabetes_risk and diabetes_risk.risk_level != 'unknown' %}
   <div class="stat-card sugar anim-fade-up anim-delay-4">
     <div class="stat-card__icon"><svg data-lucide="droplets"></svg></div>
     <div class="stat-card__body">
@@ -85,8 +88,9 @@
       </div>
       <div class="stat-card__label">Diabetes Risk</div>
       <div class="stat-card__sub">
-        {% if diabetes_risk.risk_level == 'low' %}<span class="text-primary">Low risk</span>
-        {% elif diabetes_risk.risk_level == 'moderate' %}<span class="text-warning">Moderate</span>
+        {% set risk = diabetes_risk.risk_level | string | lower %}
+        {% if risk == 'low' %}<span class="text-primary">Low risk</span>
+        {% elif risk == 'moderate' %}<span class="text-warning">Moderate</span>
         {% else %}<span class="text-danger">High risk</span>{% endif %}
       </div>
     </div>
@@ -98,7 +102,7 @@
 <!-- ── Main Content Grid ──────────────────────────────────────── -->
 <section class="insights-grid" aria-label="Insights content">
 
-  <!-- ── AI Insights Column ── -->
+  <!-- AI Insights Column -->
   <div class="card card-padded insights-list-card anim-fade-up">
     <div class="card__header">
       <div>
@@ -111,19 +115,14 @@
     </div>
 
     <div class="insights-list">
-      {% if wellness and wellness.insights %}
-        {% for insight in wellness.insights %}
-        <div class="insight-item {{ insight.type | default('info') }}">
-          <div class="insight-item__icon">
-            <svg data-lucide="
-              {%- if insight.type == 'success' %}check-circle
-              {%- elif insight.type == 'warning' %}alert-circle
-              {%- elif insight.type == 'danger' %}alert-triangle
-              {%- else %}info{%- endif %}"></svg>
-          </div>
+      {# wellness.recommendations is a list of strings — no .insights sub-key #}
+      {% if wellness and wellness.recommendations %}
+        {% for rec in wellness.recommendations %}
+        <div class="insight-item info">
+          <div class="insight-item__icon"><svg data-lucide="info"></svg></div>
           <div class="insight-item__body">
-            <div class="insight-item__title">{{ insight.title }}</div>
-            <div class="insight-item__desc">{{ insight.message }}</div>
+            <div class="insight-item__title">Recommendation</div>
+            <div class="insight-item__desc">{{ rec }}</div>
           </div>
         </div>
         {% endfor %}
@@ -150,7 +149,7 @@
     </div>
   </div>
 
-  <!-- ── Recent Activity Column ── -->
+  <!-- Recent Activity Column -->
   <div class="card card-padded anim-fade-up anim-delay-2">
     <div class="card__header">
       <div class="card__title">Recent Activity</div>
@@ -168,17 +167,12 @@
           <span class="activity-item__year">{{ record.record_date.strftime('%Y') }}</span>
         </div>
         <div class="activity-item__vitals">
-          {% if record.heart_rate %}
-          <span class="badge badge-danger">❤ {{ record.heart_rate }}bpm</span>
-          {% endif %}
-          {% if record.systolic_bp %}
-          <span class="badge badge-info">⬡ {{ record.systolic_bp }}/{{ record.diastolic_bp }}</span>
-          {% endif %}
-          {% if record.glucose_level %}
-          <span class="badge badge-warning">⬡ {{ record.glucose_level | round(0) | int }}mg</span>
-          {% endif %}
-          {% if record.weight %}
-          <span class="badge badge-neutral">⬡ {{ record.weight }}kg</span>
+          {% if record.heart_rate %}<span class="badge badge-danger">❤ {{ record.heart_rate }}bpm</span>{% endif %}
+          {% if record.systolic_bp %}<span class="badge badge-info">⬡ {{ record.systolic_bp }}/{{ record.diastolic_bp }}</span>{% endif %}
+          {% if record.glucose_level %}<span class="badge badge-warning">⬡ {{ record.glucose_level | round(0) | int }}mg</span>{% endif %}
+          {% if record.weight %}<span class="badge badge-neutral">⬡ {{ record.weight }}kg</span>{% endif %}
+          {% if not record.heart_rate and not record.systolic_bp and not record.glucose_level and not record.weight %}
+          <span class="badge badge-neutral">{{ record.record_type | capitalize }}</span>
           {% endif %}
         </div>
       </div>
