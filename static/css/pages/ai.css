@@ -1,4 +1,14 @@
-/* ===== AI & Chatbot CSS ===== */
+/* ============================================================
+   ai.css — AI Chatbot & Insights Page Styles
+   Covers: chatbot, insights stats row, insights grid,
+           activity list, insight items, responsive breakpoints
+   ============================================================ */
+
+
+/* ───────────────────────────────────────────────────────────────
+   CHATBOT LAYOUT
+   ─────────────────────────────────────────────────────────────── */
+
 .chatbot-layout {
   display: grid;
   grid-template-columns: 1fr 280px;
@@ -14,6 +24,7 @@
   border-radius: var(--radius);
   border: 1px solid var(--border);
   overflow: hidden;
+  min-width: 0; /* prevent grid blowout */
 }
 
 .chat-messages {
@@ -65,6 +76,8 @@
   font-size: var(--text-sm);
   line-height: 1.6;
   position: relative;
+  word-break: break-word;
+  overflow-wrap: anywhere;
 }
 
 .chat-msg.ai .chat-msg__bubble {
@@ -85,9 +98,11 @@
   color: var(--text-light);
   margin-top: 4px;
   align-self: flex-end;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
-/* Suggestions */
+/* Suggestion chips */
 .chat-suggestions {
   display: flex;
   gap: var(--sp-2);
@@ -97,6 +112,7 @@
   background: var(--bg-page);
   scrollbar-width: none;
 }
+.chat-suggestions::-webkit-scrollbar { display: none; }
 
 .suggestion-chip {
   padding: 6px 14px;
@@ -107,6 +123,8 @@
   font-weight: 500;
   color: var(--text-mid);
   white-space: nowrap;
+  flex-shrink: 0;
+  cursor: pointer;
   transition: all var(--dur-fast);
 }
 
@@ -131,6 +149,7 @@
 
 .chat-input {
   flex: 1;
+  min-width: 0;
   padding: 11px var(--sp-4);
   background: var(--bg-page);
   border: 1.5px solid var(--border);
@@ -155,30 +174,59 @@
   flex-shrink: 0;
 }
 
-/* Sidebar tips card */
-.chat-sidebar { display: flex; flex-direction: column; gap: var(--sp-4); }
+/* Chat sidebar */
+.chat-sidebar { display: flex; flex-direction: column; gap: var(--sp-4); min-width: 0; }
 
 .ai-tips-card {
-  background: linear-gradient(135deg, var(--accent-light), #F3F0FF);
+  background: linear-gradient(135deg, var(--accent-light, #EDE9FE), #F3F0FF);
   border-color: rgba(124, 58, 237, 0.15);
 }
 
-/* Insights */
+
+/* ───────────────────────────────────────────────────────────────
+   INSIGHTS — STATS ROW
+   Uses auto-fill so it works with 1–4 items gracefully
+   ─────────────────────────────────────────────────────────────── */
+
 .insights-stats-row {
   display: grid;
-  grid-template-columns: 280px repeat(3, 1fr);
+  /* Score card takes a natural size; rest fill evenly */
+  grid-template-columns: minmax(220px, 1fr) repeat(auto-fit, minmax(160px, 1fr));
   gap: var(--sp-4);
   margin-bottom: var(--sp-6);
+  align-items: stretch;
 }
 
+/* Health Score card */
 .insight-score-card {
   display: flex;
   align-items: center;
-  gap: var(--sp-5);
+  gap: var(--sp-4);
   background: linear-gradient(135deg, var(--primary-light), #F0FFF8);
   border-color: var(--primary-glow);
+  min-width: 0;
 }
 
+.insight-score-body {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.insight-score-label {
+  font-size: var(--text-sm);
+  font-weight: 700;
+  color: var(--text-dark);
+  white-space: nowrap;
+}
+
+.insight-score-sub {
+  font-size: var(--text-xs);
+  color: var(--text-mid);
+  margin-bottom: var(--sp-2);
+}
+
+/* SVG Score ring */
 .score-ring-wrap {
   position: relative;
   width: 80px;
@@ -190,6 +238,7 @@
   width: 80px;
   height: 80px;
   transform: rotate(-90deg);
+  overflow: visible;
 }
 
 .score-ring__bg {
@@ -204,7 +253,7 @@
   stroke-width: 8;
   stroke-linecap: round;
   stroke-dasharray: 214;
-  transition: stroke-dashoffset 1.2s var(--ease-out);
+  transition: stroke-dashoffset 1.2s ease-out;
 }
 
 .score-ring__val {
@@ -219,33 +268,72 @@
   color: var(--primary);
 }
 
+/* Trend icons */
+.trend-icon { width: 12px; height: 12px; vertical-align: middle; }
+.trend-up   { color: var(--warning); }
+.trend-down { color: var(--primary); }
+
+/* Inline icon helper */
+.icon-inline {
+  width: 16px;
+  height: 16px;
+  display: inline-block;
+  vertical-align: middle;
+  margin-right: 6px;
+}
+.text-accent  { color: var(--accent); }
+.text-primary { color: var(--primary); }
+.text-warning { color: var(--warning); }
+.text-danger  { color: var(--danger); }
+.mt-2         { margin-top: var(--sp-2); }
+
+
+/* ───────────────────────────────────────────────────────────────
+   INSIGHTS — MAIN CONTENT GRID
+   ─────────────────────────────────────────────────────────────── */
+
 .insights-grid {
   display: grid;
-  grid-template-columns: 1fr 340px;
+  grid-template-columns: 1fr 320px;
   gap: var(--sp-6);
+  align-items: start;
+}
+
+.insights-list-card { min-width: 0; }
+
+/* Insight items list */
+.insights-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+  margin-bottom: var(--sp-2);
 }
 
 .insight-item {
   display: flex;
-  gap: var(--sp-4);
-  padding: var(--sp-4);
+  align-items: flex-start;
+  gap: var(--sp-3);
+  padding: var(--sp-3) var(--sp-4);
   border-radius: var(--radius-sm);
   border-left: 3px solid var(--primary);
   background: var(--bg-page);
-  margin-bottom: var(--sp-3);
-  transition: all var(--dur-fast);
+  transition: background var(--dur-fast);
+  min-width: 0;
 }
 
-.insight-item:hover { background: var(--border); }
+.insight-item:hover { background: var(--bg-hover, var(--border)); }
 .insight-item.success { border-color: var(--success); }
 .insight-item.warning { border-color: var(--warning); }
 .insight-item.danger  { border-color: var(--danger); }
 .insight-item.info    { border-color: var(--info); }
 
 .insight-item__icon {
-  width: 32px; height: 32px;
+  width: 32px;
+  height: 32px;
   border-radius: var(--radius-sm);
-  display: flex; align-items: center; justify-content: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   flex-shrink: 0;
   background: var(--primary-light);
   color: var(--primary);
@@ -256,79 +344,148 @@
 .insight-item.info    .insight-item__icon { background: var(--info-light);    color: var(--info); }
 .insight-item__icon svg { width: 16px; height: 16px; }
 
-.insight-item__title { font-size: var(--text-sm); font-weight: 600; margin-bottom: 2px; }
-.insight-item__desc  { font-size: var(--text-xs); color: var(--text-mid); }
+.insight-item__body   { min-width: 0; flex: 1; }
+.insight-item__title  { font-size: var(--text-sm); font-weight: 600; margin-bottom: 2px; overflow-wrap: break-word; }
+.insight-item__desc   { font-size: var(--text-xs); color: var(--text-mid); line-height: 1.5; overflow-wrap: break-word; }
+
+/* Actions row */
+.insight-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-3);
+  margin-top: var(--sp-5);
+  padding-top: var(--sp-5);
+  border-top: 1px solid var(--border);
+}
+
+
+/* ───────────────────────────────────────────────────────────────
+   ACTIVITY LIST
+   ─────────────────────────────────────────────────────────────── */
+
+.activity-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+}
 
 .activity-item {
   display: flex;
   align-items: center;
-  gap: var(--sp-4);
+  gap: var(--sp-3);
   padding: var(--sp-3);
   border-radius: var(--radius-sm);
   border: 1px solid var(--border);
+  min-width: 0;
+  background: var(--bg-page);
+  transition: border-color var(--dur-fast);
 }
+.activity-item:hover { border-color: var(--primary); }
 
-.activity-item__date { min-width: 48px; text-align: center; }
-.activity-item__vitals { display: flex; flex-wrap: wrap; gap: 4px; }
-
-/* Insights Actions */
-.insight-actions {
-  margin-top: var(--sp-6);
+.activity-item__date {
   display: flex;
-  gap: var(--sp-3);
-  flex-wrap: wrap;
+  flex-direction: column;
+  align-items: center;
+  flex-shrink: 0;
+  min-width: 44px;
+  padding-right: var(--sp-3);
+  border-right: 1px solid var(--border);
 }
 
-/* ===== Responsive Breakpoints ===== */
-@media (max-width: 1200px) {
-  .insights-stats-row {
-    grid-template-columns: repeat(2, 1fr);
-  }
+.activity-item__day {
+  font-weight: 700;
+  font-size: var(--text-sm);
+  color: var(--text-dark);
+  white-space: nowrap;
+}
+
+.activity-item__year {
+  font-size: var(--text-xs);
+  color: var(--text-light);
+}
+
+.activity-item__vitals {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  flex: 1;
+  min-width: 0;
+}
+
+
+/* ───────────────────────────────────────────────────────────────
+   RESPONSIVE BREAKPOINTS
+   ─────────────────────────────────────────────────────────────── */
+
+/* Large tablet — collapse sidebar */
+@media (max-width: 1100px) {
   .insights-grid {
     grid-template-columns: 1fr;
   }
-}
 
-@media (max-width: 1100px) {
   .chatbot-layout {
     grid-template-columns: 1fr;
     height: auto;
   }
-  .chat-panel {
-    min-height: 500px;
-  }
-  .chat-sidebar {
-    display: none;
-  }
+  .chat-panel { min-height: 500px; }
+  .chat-sidebar { display: none; }
 }
 
-@media (max-width: 768px) {
+/* Tablet — wrap stats row to 2 columns */
+@media (max-width: 900px) {
   .insights-stats-row {
     grid-template-columns: repeat(2, 1fr);
-    gap: var(--sp-3);
   }
+
+  /* Score card spans both columns at the top */
   .insight-score-card {
-    gap: var(--sp-3);
-    padding: var(--sp-4);
-  }
-  .insight-item {
-    gap: var(--sp-3);
-    padding: var(--sp-3);
-  }
-  .chat-msg {
-    max-width: 88%;
+    grid-column: 1 / -1;
+    flex-direction: row;
+    align-items: center;
+    padding: var(--sp-4) var(--sp-5);
   }
 }
 
-@media (max-width: 576px) {
+/* Large phone / small tablet */
+@media (max-width: 640px) {
+  .insights-stats-row {
+    grid-template-columns: 1fr 1fr;
+    gap: var(--sp-3);
+  }
+
+  .insight-score-card {
+    grid-column: 1 / -1;
+  }
+
+  .chat-msg { max-width: 90%; }
+
+  .chat-messages { padding: var(--sp-4); }
+  .chat-input-bar { padding: var(--sp-3) var(--sp-4); }
+  .chat-suggestions { padding: var(--sp-2) var(--sp-4); }
+}
+
+/* Small phone — full width single column */
+@media (max-width: 480px) {
   .insights-stats-row {
     grid-template-columns: 1fr;
   }
+
   .insight-score-card {
+    grid-column: 1;
     flex-direction: row;
     align-items: center;
-    justify-content: flex-start;
+    gap: var(--sp-4);
   }
+
+  .score-ring-wrap,
+  .score-ring {
+    width: 64px;
+    height: 64px;
+  }
+  .score-ring__val {
+    font-size: var(--text-lg);
+  }
+
   .insight-actions {
     flex-direction: column;
   }
@@ -336,15 +493,20 @@
     width: 100%;
     justify-content: center;
   }
+
   .activity-item {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: var(--sp-2);
+    flex-wrap: wrap;
   }
   .activity-item__date {
-    text-align: left;
-    display: flex;
+    flex-direction: row;
+    border-right: none;
+    border-bottom: 1px solid var(--border);
+    padding-right: 0;
+    padding-bottom: var(--sp-2);
+    margin-bottom: var(--sp-2);
+    width: 100%;
     gap: var(--sp-2);
-    align-items: center;
   }
+
+  .chat-msg { max-width: 95%; }
 }
