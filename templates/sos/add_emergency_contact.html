@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+{% block title %}Add Contact – NexVita{% endblock %}
+{% block page_title %}Add Emergency Contact{% endblock %}
+{% block page_subtitle %}Add someone to alert during emergencies{% endblock %}
+
+{% block page_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/pages/sos.css') }}" />
+{% endblock %}
+
+{% block content %}
+<div style="max-width:600px;">
+  <div class="card card-padded ec-form-card">
+    <form method="POST" action="{{ url_for('sos.add_emergency_contact') }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token is defined else '' }}" />
+
+      <div class="form-group" style="margin-bottom:var(--sp-4);">
+        <label class="form-label">Full Name <span class="required">*</span></label>
+        <input type="text" name="name" class="form-control" placeholder="Contact's full name" required />
+      </div>
+
+      <div class="form-grid form-grid-2" style="margin-bottom:var(--sp-4);">
+        <div class="form-group">
+          <label class="form-label">Relationship <span class="required">*</span></label>
+          <select name="relationship" class="form-control" required>
+            <option value="">Select...</option>
+            <option>Spouse</option><option>Parent</option><option>Sibling</option>
+            <option>Child</option><option>Friend</option><option>Doctor</option><option>Other</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Primary Phone <span class="required">*</span></label>
+          <div class="form-control-icon">
+            <svg data-lucide="phone" class="icon"></svg>
+            <input type="tel" name="phone_primary" class="form-control" placeholder="+1 555 000 0000" required />
+          </div>
+        </div>
+      </div>
+
+      <div class="form-grid form-grid-2" style="margin-bottom:var(--sp-4);">
+        <div class="form-group">
+          <label class="form-label">Secondary Phone</label>
+          <input type="tel" name="phone_secondary" class="form-control" placeholder="Optional" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Email</label>
+          <input type="email" name="email" class="form-control" placeholder="Optional" />
+        </div>
+      </div>
+
+      <div class="form-group" style="margin-bottom:var(--sp-5);">
+        <label class="form-label">Address</label>
+        <textarea name="address" class="form-control" placeholder="Optional" style="min-height:70px;"></textarea>
+      </div>
+
+      <div class="toggle-wrap" style="margin-bottom:var(--sp-6);">
+        <label class="toggle">
+          <input type="checkbox" name="is_primary" />
+          <span class="toggle-track"></span>
+        </label>
+        <div>
+          <div style="font-size:var(--text-sm);font-weight:600;">Set as Primary Contact</div>
+          <div style="font-size:var(--text-xs);color:var(--text-mid);">This contact will be notified first during SOS</div>
+        </div>
+      </div>
+
+      <div class="flex gap-3">
+        <a href="{{ url_for('sos.emergency_contacts') }}" class="btn btn-ghost">Cancel</a>
+        <button type="submit" class="btn btn-primary">
+          <svg data-lucide="user-plus"></svg> Add Contact
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

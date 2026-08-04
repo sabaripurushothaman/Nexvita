@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% block title %}Admin – NexVita{% endblock %}
+{% block page_title %}Admin Panel{% endblock %}
+{% block page_subtitle %}Manage users, data, and system settings{% endblock %}
+
+{% block content %}
+<div class="stats-row">
+  <div class="stat-card anim-fade-up anim-delay-1">
+    <div class="stat-card__icon"><svg data-lucide="users"></svg></div>
+    <div class="stat-card__body">
+      <div class="stat-card__value">{{ user_count or 0 }}</div>
+      <div class="stat-card__label">Total Users</div>
+    </div>
+  </div>
+  <div class="stat-card bp anim-fade-up anim-delay-2">
+    <div class="stat-card__icon"><svg data-lucide="file-text"></svg></div>
+    <div class="stat-card__body">
+      <div class="stat-card__value">{{ record_count or 0 }}</div>
+      <div class="stat-card__label">Health Records</div>
+    </div>
+  </div>
+  <div class="stat-card bmi anim-fade-up anim-delay-3">
+    <div class="stat-card__icon"><svg data-lucide="building-2"></svg></div>
+    <div class="stat-card__body">
+      <div class="stat-card__value">{{ hospital_count or 0 }}</div>
+      <div class="stat-card__label">Hospitals</div>
+    </div>
+  </div>
+</div>
+
+<div class="flex gap-4" style="margin-top:var(--sp-6);">
+  <div class="card card-padded" style="flex:1;">
+    <div class="card__title" style="margin-bottom:var(--sp-4);">Quick Actions</div>
+    <div style="display:flex;flex-direction:column;gap:var(--sp-3);">
+      <a href="{{ url_for('hospital.add') }}" class="btn btn-primary w-full" style="justify-content:flex-start;">
+        <svg data-lucide="plus-circle"></svg> Add Hospital
+      </a>
+    </div>
+  </div>
+  <div class="card card-padded" style="flex:2;">
+    <div class="card__title" style="margin-bottom:var(--sp-4);">Recent Users</div>
+    {% if recent_users %}
+    <div class="table-wrapper" style="border:none;">
+      <table class="table">
+        <thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Joined</th></tr></thead>
+        <tbody>
+          {% for u in recent_users %}
+          <tr>
+            <td>{{ u.get_full_name() or u.username }}</td>
+            <td>{{ u.email }}</td>
+            <td><span class="badge badge-neutral">{{ u.role }}</span></td>
+            <td>{{ u.created_at.strftime('%b %d, %Y') }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="empty-state"><svg data-lucide="users"></svg><h3>No users yet</h3></div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}
+
+{% block page_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/pages/dashboard.css') }}" />
+{% endblock %}

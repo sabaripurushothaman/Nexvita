@@ -1,0 +1,159 @@
+{% extends "base.html" %}
+{% block title %}Insights – NexVita{% endblock %}
+{% block page_title %}Health Insights{% endblock %}
+{% block page_subtitle %}AI-powered analysis of your health trends{% endblock %}
+
+{% block page_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/pages/ai.css') }}" />
+{% endblock %}
+
+{% block content %}
+{% set score = wellness.score if wellness and wellness.score else 0 %}
+
+<!-- Insights Summary Row -->
+<div class="insights-stats-row">
+  <!-- Wellness Score -->
+  <div class="card card-padded insight-score-card anim-fade-up anim-delay-1">
+    <div class="score-ring-wrap">
+      <svg class="score-ring" viewBox="0 0 80 80">
+        <circle class="score-ring__bg" cx="40" cy="40" r="34" />
+        <circle class="score-ring__fill" cx="40" cy="40" r="34"
+                style="stroke-dashoffset: {{ 214 - (214 * score / 100) }};" />
+      </svg>
+      <div class="score-ring__val">{{ score }}</div>
+    </div>
+    <div class="insight-score-body">
+      <div class="card__title">Health Score</div>
+      <div class="card__subtitle">Out of 100</div>
+      <span class="badge {% if score >= 80 %}badge-success{% elif score >= 60 %}badge-warning{% else %}badge-danger{% endif %}" style="margin-top:8px;">
+        {% if score >= 80 %}Excellent{% elif score >= 60 %}Good{% else %}Needs Attention{% endif %}
+      </span>
+    </div>
+  </div>
+
+  {% if bmi_trend %}
+  <div class="stat-card bmi anim-fade-up anim-delay-2">
+    <div class="stat-card__icon"><svg data-lucide="scale"></svg></div>
+    <div class="stat-card__body">
+      <div class="stat-card__value">{{ bmi_trend.current | round(1) if bmi_trend.current else '—' }}</div>
+      <div class="stat-card__label">Current BMI</div>
+      <div class="stat-card__sub">
+        {% if bmi_trend.trend > 0 %}<svg data-lucide="trending-up" style="width:12px;height:12px;color:var(--warning);"></svg> Increasing
+        {% elif bmi_trend.trend < 0 %}<svg data-lucide="trending-down" style="width:12px;height:12px;color:var(--primary);"></svg> Decreasing
+        {% else %}Stable{% endif %}
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+  {% if bp_trend %}
+  <div class="stat-card bp anim-fade-up anim-delay-3">
+    <div class="stat-card__icon"><svg data-lucide="activity"></svg></div>
+    <div class="stat-card__body">
+      <div class="stat-card__value">{{ bp_trend.avg_systolic | int if bp_trend.avg_systolic else '—' }}<span class="stat-card__unit">mmHg</span></div>
+      <div class="stat-card__label">Avg Systolic BP</div>
+      <div class="stat-card__sub">
+        {% if bp_trend.status == 'normal' %}<span style="color:var(--primary);">Normal range</span>
+        {% elif bp_trend.status == 'elevated' %}<span style="color:var(--warning);">Elevated</span>
+        {% else %}<span style="color:var(--danger);">High</span>{% endif %}
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+  {% if diabetes_risk %}
+  <div class="stat-card sugar anim-fade-up anim-delay-4">
+    <div class="stat-card__icon"><svg data-lucide="droplets"></svg></div>
+    <div class="stat-card__body">
+      <div class="stat-card__value">{{ diabetes_risk.risk_percentage | int if diabetes_risk.risk_percentage else '—' }}<span class="stat-card__unit">%</span></div>
+      <div class="stat-card__label">Diabetes Risk</div>
+      <div class="stat-card__sub">
+        {% if diabetes_risk.risk_level == 'low' %}<span style="color:var(--primary);">Low risk</span>
+        {% elif diabetes_risk.risk_level == 'moderate' %}<span style="color:var(--warning);">Moderate</span>
+        {% else %}<span style="color:var(--danger);">High risk</span>{% endif %}
+      </div>
+    </div>
+  </div>
+  {% endif %}
+</div>
+
+<!-- Insights Content Grid -->
+<div class="insights-grid">
+  <!-- AI Insights List -->
+  <div class="card card-padded insights-list-card">
+    <div class="card__header">
+      <div>
+        <div class="card__title">
+          <svg data-lucide="sparkles" style="width:16px;height:16px;color:var(--accent);display:inline;margin-right:6px;"></svg>
+          AI Insights
+        </div>
+        <div class="card__subtitle">Personalised recommendations based on your data</div>
+      </div>
+    </div>
+    <div class="insights-list">
+      {% if wellness and wellness.insights %}
+        {% for insight in wellness.insights %}
+        <div class="insight-item {{ insight.type | default('info') }}">
+          <div class="insight-item__icon">
+            <svg data-lucide="{% if insight.type == 'success' %}check-circle{% elif insight.type == 'warning' %}alert-circle{% else %}info{% endif %}"></svg>
+          </div>
+          <div class="insight-item__body">
+            <div class="insight-item__title">{{ insight.title }}</div>
+            <div class="insight-item__desc">{{ insight.message }}</div>
+          </div>
+        </div>
+        {% endfor %}
+      {% else %}
+      <div class="insight-item info">
+        <div class="insight-item__icon"><svg data-lucide="info"></svg></div>
+        <div class="insight-item__body">
+          <div class="insight-item__title">Add more health records for personalised insights</div>
+          <div class="insight-item__desc">Log your vitals regularly so our AI can analyse trends and give you meaningful recommendations.</div>
+        </div>
+      </div>
+      {% endif %}
+    </div>
+
+    <div style="margin-top:var(--sp-6);display:flex;gap:var(--sp-3);">
+      <a href="{{ url_for('ai.generate_report') }}" class="btn btn-primary">
+        <svg data-lucide="file-text"></svg> Full Health Report
+      </a>
+      <a href="{{ url_for('ai.chatbot') }}" class="btn btn-ghost">
+        <svg data-lucide="bot"></svg> Ask AI
+      </a>
+    </div>
+  </div>
+
+  <!-- Recent Records Summary -->
+  <div class="card card-padded">
+    <div class="card__header">
+      <div class="card__title">Recent Activity</div>
+      <a href="{{ url_for('health.index') }}" class="btn btn-ghost btn-sm">Add Record</a>
+    </div>
+    {% if recent_records %}
+    <div style="display:flex;flex-direction:column;gap:var(--sp-3);">
+      {% for record in recent_records[:6] %}
+      <div class="activity-item">
+        <div class="activity-item__date">
+          <div style="font-weight:600;font-size:var(--text-sm);">{{ record.record_date.strftime('%b %d') }}</div>
+          <div style="font-size:var(--text-xs);color:var(--text-mid);">{{ record.record_date.strftime('%Y') }}</div>
+        </div>
+        <div class="activity-item__vitals">
+          {% if record.heart_rate %}<span class="badge badge-danger">❤ {{ record.heart_rate }}bpm</span>{% endif %}
+          {% if record.systolic_bp %}<span class="badge badge-info">⬡ {{ record.systolic_bp }}/{{ record.diastolic_bp }}</span>{% endif %}
+          {% if record.glucose_level %}<span class="badge badge-warning">⬡ {{ record.glucose_level | round(0) | int }}mg</span>{% endif %}
+          {% if record.weight %}<span class="badge badge-neutral">⬡ {{ record.weight }}kg</span>{% endif %}
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty-state" style="padding:var(--sp-6);">
+      <svg data-lucide="bar-chart-2"></svg>
+      <h3>No records</h3>
+      <p>Start logging to see insights.</p>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

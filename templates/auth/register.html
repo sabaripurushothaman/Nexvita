@@ -1,0 +1,178 @@
+{% extends "base_auth.html" %}
+{% block title %}Create Account – NexVita{% endblock %}
+
+{% block content %}
+<div class="auth-page">
+  <div class="auth-split">
+    <!-- Left Panel -->
+    <div class="auth-brand">
+      <div class="auth-brand__logo">
+        <div class="sidebar__logo-icon" style="width:48px;height:48px;">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="width:26px;height:26px;color:white;">
+            <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
+          </svg>
+        </div>
+        <span style="font-family:var(--font-heading);font-size:var(--text-2xl);font-weight:700;color:white;">Nex<span style="color:rgba(255,255,255,.7)">Vita</span></span>
+      </div>
+      <h2 class="auth-brand__heading">Your personal health companion, built just for you</h2>
+      <p class="auth-brand__sub">Join thousands of people who trust NexVita with their health journey.</p>
+      <div class="auth-brand__features">
+        <div class="auth-brand__feature">
+          <div class="auth-brand__feature-icon"><svg data-lucide="heart-pulse"></svg></div>
+          <span>Real-time vitals tracking</span>
+        </div>
+        <div class="auth-brand__feature">
+          <div class="auth-brand__feature-icon"><svg data-lucide="sparkles"></svg></div>
+          <span>Personalised AI insights</span>
+        </div>
+        <div class="auth-brand__feature">
+          <div class="auth-brand__feature-icon"><svg data-lucide="bell-ring"></svg></div>
+          <span>Smart health reminders</span>
+        </div>
+      </div>
+      <div class="auth-deco-card float-anim" style="top:35%;right:-15px;">
+        <svg data-lucide="check-circle" style="width:16px;height:16px;color:var(--primary);"></svg>
+        <span>Free forever plan</span>
+      </div>
+    </div>
+
+    <!-- Right Form Panel -->
+    <div class="auth-form-panel">
+      <div class="auth-form-card anim-scale-in">
+        <div class="auth-form-header">
+          <h2>Create Account</h2>
+          <p>Fill in your details to get started in seconds</p>
+        </div>
+
+        <form method="POST" action="{{ url_for('auth.register') }}" id="registerForm" novalidate>
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token is defined else '' }}" />
+
+          <div class="form-grid form-grid-2" style="margin-bottom:var(--sp-4);">
+            <div class="form-group">
+              <label for="first_name" class="form-label">First Name <span class="required">*</span></label>
+              <div class="form-control-icon">
+                <svg data-lucide="user" class="icon"></svg>
+                <input type="text" id="first_name" name="first_name" class="form-control" placeholder="John" required />
+              </div>
+            </div>
+            <div class="form-group">
+              <label for="last_name" class="form-label">Last Name <span class="required">*</span></label>
+              <input type="text" id="last_name" name="last_name" class="form-control" placeholder="Doe" required />
+            </div>
+          </div>
+
+          <div class="form-group" style="margin-bottom:var(--sp-4);">
+            <label for="username" class="form-label">Username <span class="required">*</span></label>
+            <div class="form-control-icon">
+              <svg data-lucide="at-sign" class="icon"></svg>
+              <input type="text" id="username" name="username" class="form-control" placeholder="johndoe" required autocomplete="username" />
+            </div>
+          </div>
+
+          <div class="form-group" style="margin-bottom:var(--sp-4);">
+            <label for="email" class="form-label">Email Address <span class="required">*</span></label>
+            <div class="form-control-icon">
+              <svg data-lucide="mail" class="icon"></svg>
+              <input type="email" id="email" name="email" class="form-control" placeholder="john@example.com" required autocomplete="email" />
+            </div>
+          </div>
+
+          <div class="form-group" style="margin-bottom:var(--sp-4);">
+            <label for="password" class="form-label">Password <span class="required">*</span></label>
+            <div class="form-control-icon" style="position:relative;">
+              <svg data-lucide="lock" class="icon"></svg>
+              <input type="password" id="password" name="password" class="form-control"
+                     placeholder="Min. 8 characters" required autocomplete="new-password"
+                     style="padding-right:3rem;" oninput="checkPwStrength(this.value)" />
+              <button type="button" class="pw-toggle" onclick="togglePw('password', this)">
+                <svg data-lucide="eye" style="width:16px;height:16px;color:var(--text-light);"></svg>
+              </button>
+            </div>
+            <!-- Password strength indicator -->
+            <div class="pw-strength" id="pwStrength" style="display:none;">
+              <div class="progress-bar" style="margin-top:6px;">
+                <div class="progress-fill" id="pwFill" style="width:0%;"></div>
+              </div>
+              <div id="pwLabel" style="font-size:var(--text-xs);color:var(--text-mid);margin-top:4px;">Weak</div>
+            </div>
+          </div>
+
+          <div class="form-group" style="margin-bottom:var(--sp-5);">
+            <label for="confirm_password" class="form-label">Confirm Password <span class="required">*</span></label>
+            <div class="form-control-icon" style="position:relative;">
+              <svg data-lucide="lock" class="icon"></svg>
+              <input type="password" id="confirm_password" name="confirm_password" class="form-control"
+                     placeholder="Repeat password" required autocomplete="new-password"
+                     style="padding-right:3rem;" />
+              <button type="button" class="pw-toggle" onclick="togglePw('confirm_password', this)">
+                <svg data-lucide="eye" style="width:16px;height:16px;color:var(--text-light);"></svg>
+              </button>
+            </div>
+          </div>
+
+          <label class="auth-terms">
+            <input type="checkbox" required id="terms" />
+            <span>I agree to the <a href="#">Terms of Service</a> and <a href="#">Privacy Policy</a></span>
+          </label>
+
+          <button type="submit" class="btn btn-primary w-full btn-lg btn-ripple" style="margin-top:var(--sp-5);" id="registerBtn">
+            <svg data-lucide="user-plus"></svg>
+            Create Account
+          </button>
+        </form>
+
+        <div class="auth-divider"><span>Already have an account?</span></div>
+        <a href="{{ url_for('auth.login') }}" class="btn btn-ghost w-full" style="justify-content:center;">Sign In</a>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block page_js %}
+<script>
+function togglePw(inputId, btn) {
+  const inp = document.getElementById(inputId);
+  inp.type = inp.type === 'password' ? 'text' : 'password';
+  btn.querySelector('svg').setAttribute('data-lucide', inp.type === 'password' ? 'eye' : 'eye-off');
+  lucide.createIcons();
+}
+
+function checkPwStrength(pw) {
+  const wrap = document.getElementById('pwStrength');
+  const fill = document.getElementById('pwFill');
+  const label = document.getElementById('pwLabel');
+  if (!pw) { wrap.style.display = 'none'; return; }
+  wrap.style.display = 'block';
+  let score = 0;
+  if (pw.length >= 8) score++;
+  if (/[A-Z]/.test(pw)) score++;
+  if (/[0-9]/.test(pw)) score++;
+  if (/[^A-Za-z0-9]/.test(pw)) score++;
+  const levels = [
+    { pct: '25%', color: 'var(--danger)',  text: 'Weak' },
+    { pct: '50%', color: 'var(--warning)', text: 'Fair' },
+    { pct: '75%', color: 'var(--info)',    text: 'Good' },
+    { pct: '100%', color: 'var(--primary)', text: 'Strong' },
+  ];
+  const lvl = levels[score - 1] || levels[0];
+  fill.style.width = lvl.pct;
+  fill.style.background = lvl.color;
+  label.textContent = lvl.text;
+  label.style.color = lvl.color;
+}
+
+document.getElementById('registerForm').addEventListener('submit', function(e) {
+  const pw  = document.getElementById('password').value;
+  const cpw = document.getElementById('confirm_password').value;
+  if (pw !== cpw) {
+    e.preventDefault();
+    alert('Passwords do not match.');
+    return;
+  }
+  const btn = document.getElementById('registerBtn');
+  btn.innerHTML = '<span class="spinner spinner-sm"></span> Creating Account...';
+  btn.disabled = true;
+});
+</script>
+{% endblock %}

@@ -1,0 +1,206 @@
+{% extends "base.html" %}
+{% block title %}Reminders – NexVita{% endblock %}
+{% block page_title %}Reminders{% endblock %}
+{% block page_subtitle %}Stay on top of your health schedule{% endblock %}
+
+{% block page_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/pages/reminders.css') }}" />
+{% endblock %}
+
+{% block content %}
+<div class="reminders-page">
+  <!-- Category Filter + Add Button -->
+  <div class="reminders-header">
+    <div class="category-tabs">
+      <a href="{{ url_for('reminders.index', category='all') }}"
+         class="cat-tab {% if category_filter == 'all' %}active{% endif %}">
+        <svg data-lucide="grid-2x2" style="width:15px;height:15px;"></svg>
+        All <span class="cat-count">{{ counts.all }}</span>
+      </a>
+      {% set cat_icons = {'medicine':'pill','water':'droplets','appointment':'calendar','checkup':'stethoscope','exercise':'dumbbell','other':'bell'} %}
+      {% for cat in categories %}
+      <a href="{{ url_for('reminders.index', category=cat) }}"
+         class="cat-tab {% if category_filter == cat %}active{% endif %}">
+        <svg data-lucide="{{ cat_icons[cat] }}" style="width:15px;height:15px;"></svg>
+        {{ cat | capitalize }} <span class="cat-count">{{ counts[cat] }}</span>
+      </a>
+      {% endfor %}
+    </div>
+    <button class="btn btn-primary" id="addReminderBtn" onclick="openModal('addModal')">
+      <svg data-lucide="plus"></svg>
+      Add Reminder
+    </button>
+  </div>
+
+  <!-- Reminder Cards -->
+  <div class="reminder-cards" id="reminderCards">
+    {% if reminders %}
+      {% for reminder in reminders %}
+      <div class="reminder-card {% if not reminder.is_active %}inactive{% endif %} remind-{{ reminder.category }}"
+           id="card-{{ reminder.id }}">
+        <div class="reminder-card__left">
+          <div class="reminder-card__icon">
+            <svg data-lucide="{{ reminder.icon }}"></svg>
+          </div>
+        </div>
+        <div class="reminder-card__body">
+          <div class="reminder-card__title">{{ reminder.title }}</div>
+          <div class="reminder-card__time">
+            <svg data-lucide="clock" style="width:13px;height:13px;"></svg>
+            {{ reminder.reminder_time.strftime('%b %d, %Y at %I:%M %p') }}
+          </div>
+          {% if reminder.notes %}
+          <div class="reminder-card__notes">{{ reminder.notes }}</div>
+          {% endif %}
+        </div>
+        <div class="reminder-card__meta">
+          <span class="badge badge-{{ reminder.colour }}">{{ reminder.category | capitalize }}</span>
+          <span class="badge badge-neutral" style="font-size:10px;">{{ reminder.frequency | capitalize }}</span>
+        </div>
+        <div class="reminder-card__actions">
+          <!-- Toggle Active -->
+          <label class="toggle" title="{{ 'Disable' if reminder.is_active else 'Enable' }}">
+            <input type="checkbox" {% if reminder.is_active %}checked{% endif %}
+                   onchange="toggleReminder({{ reminder.id }}, this)" />
+            <span class="toggle-track"></span>
+          </label>
+          <!-- Edit -->
+          <button class="btn btn-ghost btn-icon btn-sm" title="Edit"
+                  onclick="openEditModal({{ reminder.id }}, '{{ reminder.title | e }}', '{{ reminder.category }}', '{{ reminder.reminder_time.strftime('%Y-%m-%dT%H:%M') }}', '{{ reminder.frequency }}', '{{ (reminder.notes or '') | e }}')">
+            <svg data-lucide="pencil" style="width:15px;height:15px;"></svg>
+          </button>
+          <!-- Delete -->
+          <button class="btn btn-ghost btn-icon btn-sm" title="Delete" style="color:var(--danger);"
+                  onclick="deleteReminder({{ reminder.id }})">
+            <svg data-lucide="trash-2" style="width:15px;height:15px;"></svg>
+          </button>
+        </div>
+      </div>
+      {% endfor %}
+    {% else %}
+    <div class="empty-state" style="grid-column:1/-1;">
+      <svg data-lucide="bell-off"></svg>
+      <h3>No reminders{% if category_filter != 'all' %} in "{{ category_filter | capitalize }}"{% endif %}</h3>
+      <p>Add reminders to stay on top of your health routine.</p>
+      <button class="btn btn-primary" style="margin-top:var(--sp-4);" onclick="openModal('addModal')">
+        <svg data-lucide="plus"></svg> Add Reminder
+      </button>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+<!-- ===== ADD REMINDER MODAL ===== -->
+<div class="modal-overlay" id="addModal">
+  <div class="modal">
+    <div class="modal__header">
+      <div class="modal__title">
+        <svg data-lucide="bell-plus" style="width:18px;height:18px;color:var(--primary);display:inline;margin-right:6px;"></svg>
+        Add New Reminder
+      </div>
+      <button class="modal__close" onclick="closeModal('addModal')">
+        <svg data-lucide="x"></svg>
+      </button>
+    </div>
+    <div class="modal__body">
+      <form method="POST" action="{{ url_for('reminders.add') }}" id="addReminderForm">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token is defined else '' }}" />
+
+        <div class="form-group" style="margin-bottom:var(--sp-4);">
+          <label class="form-label">Reminder Title <span class="required">*</span></label>
+          <input type="text" name="title" class="form-control" placeholder="Take Vitamin D" required />
+        </div>
+
+        <div class="form-grid form-grid-2" style="margin-bottom:var(--sp-4);">
+          <div class="form-group">
+            <label class="form-label">Category</label>
+            <select name="category" class="form-control">
+              {% for cat in categories %}
+              <option value="{{ cat }}">{{ cat | capitalize }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Frequency</label>
+            <select name="frequency" class="form-control">
+              {% for freq in frequencies %}
+              <option value="{{ freq }}">{{ freq | capitalize }}</option>
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+
+        <div class="form-group" style="margin-bottom:var(--sp-4);">
+          <label class="form-label">Date & Time <span class="required">*</span></label>
+          <input type="datetime-local" name="reminder_time" class="form-control" required />
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Notes (optional)</label>
+          <textarea name="notes" class="form-control" placeholder="Any additional details..." style="min-height:80px;"></textarea>
+        </div>
+
+        <div class="modal__footer" style="padding:0;margin-top:var(--sp-5);">
+          <button type="button" class="btn btn-ghost" onclick="closeModal('addModal')">Cancel</button>
+          <button type="submit" class="btn btn-primary">
+            <svg data-lucide="save"></svg> Save Reminder
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- ===== EDIT REMINDER MODAL ===== -->
+<div class="modal-overlay" id="editModal">
+  <div class="modal">
+    <div class="modal__header">
+      <div class="modal__title">Edit Reminder</div>
+      <button class="modal__close" onclick="closeModal('editModal')"><svg data-lucide="x"></svg></button>
+    </div>
+    <div class="modal__body">
+      <form method="POST" id="editReminderForm">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token is defined else '' }}" />
+        <div class="form-group" style="margin-bottom:var(--sp-4);">
+          <label class="form-label">Title</label>
+          <input type="text" name="title" id="editTitle" class="form-control" required />
+        </div>
+        <div class="form-grid form-grid-2" style="margin-bottom:var(--sp-4);">
+          <div class="form-group">
+            <label class="form-label">Category</label>
+            <select name="category" id="editCategory" class="form-control">
+              {% for cat in categories %}
+              <option value="{{ cat }}">{{ cat | capitalize }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Frequency</label>
+            <select name="frequency" id="editFrequency" class="form-control">
+              {% for freq in frequencies %}
+              <option value="{{ freq }}">{{ freq | capitalize }}</option>
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+        <div class="form-group" style="margin-bottom:var(--sp-4);">
+          <label class="form-label">Date & Time</label>
+          <input type="datetime-local" name="reminder_time" id="editTime" class="form-control" required />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Notes</label>
+          <textarea name="notes" id="editNotes" class="form-control" style="min-height:70px;"></textarea>
+        </div>
+        <div class="modal__footer" style="padding:0;margin-top:var(--sp-5);">
+          <button type="button" class="btn btn-ghost" onclick="closeModal('editModal')">Cancel</button>
+          <button type="submit" class="btn btn-primary"><svg data-lucide="save"></svg> Update</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block page_js %}
+<script src="{{ url_for('static', filename='js/reminders.js') }}"></script>
+{% endblock %}

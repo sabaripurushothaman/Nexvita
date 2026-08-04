@@ -1,0 +1,132 @@
+{% extends "base.html" %}
+{% block title %}AI Assistant – NexVita{% endblock %}
+{% block page_title %}AI Health Assistant{% endblock %}
+{% block page_subtitle %}Ask me anything about your health{% endblock %}
+
+{% block page_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/pages/ai.css') }}" />
+{% endblock %}
+
+{% block content %}
+<div class="chatbot-layout">
+  <!-- Chat Area -->
+  <div class="chat-panel">
+    <div class="chat-messages" id="chatMessages">
+      <!-- Welcome message -->
+      <div class="chat-msg ai">
+        <div class="chat-msg__avatar">
+          <svg data-lucide="bot" style="width:18px;height:18px;color:white;"></svg>
+        </div>
+        <div class="chat-msg__bubble">
+          <p>👋 Hello, {{ current_user.first_name or current_user.username }}! I'm your NexVita AI Health Assistant.</p>
+          <p style="margin-top:8px;">I can help you with:</p>
+          <ul style="margin:8px 0 0 16px;line-height:2;">
+            <li>Understanding your health records</li>
+            <li>Answering health questions</li>
+            <li>Symptom analysis</li>
+            <li>Medication information</li>
+          </ul>
+        </div>
+        <div class="chat-msg__time">Now</div>
+      </div>
+
+      <!-- History messages -->
+      {% if history %}
+        {% for msg in history | reverse %}
+        <div class="chat-msg {{ msg.message_type }}">
+          {% if msg.message_type == 'ai' %}
+          <div class="chat-msg__avatar">
+            <svg data-lucide="bot" style="width:18px;height:18px;color:white;"></svg>
+          </div>
+          {% endif %}
+          <div class="chat-msg__bubble">{{ msg.content }}</div>
+          <div class="chat-msg__time">{{ msg.created_at.strftime('%I:%M %p') }}</div>
+          {% if msg.message_type == 'user' %}
+          <div class="chat-msg__avatar user-avatar">
+            {{ current_user.first_name[0] | upper if current_user.first_name else current_user.username[0] | upper }}
+          </div>
+          {% endif %}
+        </div>
+        {% endfor %}
+      {% endif %}
+
+      <!-- Typing indicator (hidden) -->
+      <div class="chat-msg ai" id="typingIndicator" style="display:none;">
+        <div class="chat-msg__avatar">
+          <svg data-lucide="bot" style="width:18px;height:18px;color:white;"></svg>
+        </div>
+        <div class="chat-msg__bubble typing-dots">
+          <span></span><span></span><span></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Quick Suggestions -->
+    <div class="chat-suggestions" id="chatSuggestions">
+      <button class="suggestion-chip" onclick="sendSuggestion(this)">What is a normal heart rate?</button>
+      <button class="suggestion-chip" onclick="sendSuggestion(this)">How to lower blood pressure?</button>
+      <button class="suggestion-chip" onclick="sendSuggestion(this)">What does high blood sugar mean?</button>
+      <button class="suggestion-chip" onclick="sendSuggestion(this)">Tips for better sleep</button>
+    </div>
+
+    <!-- Input Bar -->
+    <div class="chat-input-bar">
+      <form id="chatForm" class="chat-input-form">
+        <input type="text" id="chatInput" class="chat-input"
+               placeholder="Type your health question..." autocomplete="off" />
+        <button type="submit" class="btn btn-primary btn-icon" id="sendBtn" title="Send">
+          <svg data-lucide="send" style="width:18px;height:18px;"></svg>
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Sidebar Info Panel -->
+  <div class="chat-sidebar">
+    <div class="card card-padded" style="margin-bottom:var(--sp-4);">
+      <div class="card__title" style="margin-bottom:var(--sp-3);">Quick Actions</div>
+      <div style="display:flex;flex-direction:column;gap:var(--sp-2);">
+        <a href="{{ url_for('ai.symptom_checker') }}" class="btn btn-ghost w-full" style="justify-content:flex-start;">
+          <svg data-lucide="stethoscope" style="width:16px;height:16px;color:var(--primary);"></svg>
+          Symptom Checker
+        </a>
+        <a href="{{ url_for('ai.insights') }}" class="btn btn-ghost w-full" style="justify-content:flex-start;">
+          <svg data-lucide="trending-up" style="width:16px;height:16px;color:var(--accent);"></svg>
+          Health Insights
+        </a>
+        <a href="{{ url_for('ai.health_risk_assessment') }}" class="btn btn-ghost w-full" style="justify-content:flex-start;">
+          <svg data-lucide="shield-alert" style="width:16px;height:16px;color:var(--warning);"></svg>
+          Risk Assessment
+        </a>
+        <a href="{{ url_for('ai.generate_report') }}" class="btn btn-ghost w-full" style="justify-content:flex-start;">
+          <svg data-lucide="file-text" style="width:16px;height:16px;color:var(--info);"></svg>
+          Generate Report
+        </a>
+      </div>
+    </div>
+
+    <div class="card card-padded ai-tips-card">
+      <div class="card__title" style="margin-bottom:var(--sp-3);">
+        <svg data-lucide="lightbulb" style="width:16px;height:16px;display:inline;color:var(--warning);margin-right:4px;"></svg>
+        Health Tip of the Day
+      </div>
+      <p style="font-size:var(--text-sm);line-height:1.6;">
+        Regular exercise for at least 30 minutes a day can reduce the risk of heart disease by up to 35%.
+      </p>
+      <div style="margin-top:var(--sp-3);display:flex;align-items:center;gap:var(--sp-2);">
+        <div class="avatar avatar-sm" style="background:linear-gradient(135deg,var(--primary),var(--primary-dark));">
+          <svg data-lucide="bot" style="width:14px;height:14px;color:white;"></svg>
+        </div>
+        <span style="font-size:var(--text-xs);color:var(--text-mid);">NexVita AI</span>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block page_js %}
+<script src="{{ url_for('static', filename='js/ai.js') }}"></script>
+<script>
+  initChatbot('{{ url_for("ai.chat") }}', '{{ current_user.first_name[0] | upper if current_user.first_name else current_user.username[0] | upper }}');
+</script>
+{% endblock %}

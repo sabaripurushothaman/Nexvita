@@ -1,0 +1,298 @@
+{% extends "base_auth.html" %}
+{% block title %}NexVita – Smart Health Platform{% endblock %}
+{% block page_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/pages/landing.css') }}" />
+{% endblock %}
+
+{% block content %}
+<!-- ===== NAVBAR ===== -->
+<nav class="landing-nav" id="landingNav">
+  <div class="landing-nav__inner">
+    <a href="/" class="landing-nav__logo">
+      <div class="landing-nav__logo-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="width:18px;height:18px;color:white;">
+          <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
+        </svg>
+      </div>
+      Nex<span>Vita</span>
+    </a>
+    <ul class="landing-nav__links">
+      <li><a href="#features">Features</a></li>
+      <li><a href="#how-it-works">How It Works</a></li>
+      <li><a href="#stats">About</a></li>
+    </ul>
+    <div class="landing-nav__cta">
+      <a href="{{ url_for('auth.login') }}" class="btn btn-ghost btn-sm">Sign In</a>
+      <a href="{{ url_for('auth.register') }}" class="btn btn-primary btn-sm">Get Started</a>
+    </div>
+  </div>
+</nav>
+
+<!-- ===== HERO ===== -->
+<section class="hero">
+  <div class="hero__bg animated-gradient"></div>
+  <div class="hero__content">
+    <div class="hero__text anim-fade-up">
+      <div class="hero__badge">
+        <svg data-lucide="zap" style="width:14px;height:14px;"></svg>
+        AI-Powered Health Platform
+      </div>
+      <h1 class="hero__heading">
+        Smart Health.<br />
+        <span class="gradient-text">Better Life.</span>
+      </h1>
+      <p class="hero__sub">
+        Track your vitals, consult your AI health assistant, and never miss a medication reminder. NexVita puts your wellbeing first — all in one beautiful dashboard.
+      </p>
+      <div class="hero__actions">
+        <a href="{{ url_for('auth.register') }}" class="btn btn-primary btn-lg btn-ripple" id="hero-cta">
+          <svg data-lucide="arrow-right"></svg>
+          Start for Free
+        </a>
+        <a href="#features" class="btn btn-ghost btn-lg">
+          <svg data-lucide="play-circle"></svg>
+          Learn More
+        </a>
+      </div>
+    </div>
+
+    <!-- Hero Dashboard Preview Card -->
+    <div class="hero__card-wrap anim-fade-up anim-delay-2">
+      <div class="hero__dashboard-card float-anim">
+        <div class="hero__card-header">
+          <div class="avatar avatar-sm" style="background:linear-gradient(135deg,#00C897,#7C3AED);">A</div>
+          <div>
+            <div style="font-size:13px;font-weight:600;">Alex Johnson</div>
+            <div style="font-size:11px;color:var(--text-mid);">Health Overview</div>
+          </div>
+          <span class="badge badge-success" style="margin-left:auto;">
+            <span class="dot"></span> Active
+          </span>
+        </div>
+        <div class="hero__vitals">
+          <div class="hero__vital-item">
+            <div class="hero__vital-icon" style="background:#FEE2E2;">
+              <svg data-lucide="heart" style="width:16px;height:16px;color:#EF4444;"></svg>
+            </div>
+            <div>
+              <div class="hero__vital-val">72 <span>bpm</span></div>
+              <div class="hero__vital-label">Heart Rate</div>
+            </div>
+          </div>
+          <div class="hero__vital-item">
+            <div class="hero__vital-icon" style="background:#DBEAFE;">
+              <svg data-lucide="activity" style="width:16px;height:16px;color:#3B82F6;"></svg>
+            </div>
+            <div>
+              <div class="hero__vital-val">120/80 <span>mmHg</span></div>
+              <div class="hero__vital-label">Blood Pressure</div>
+            </div>
+          </div>
+          <div class="hero__vital-item">
+            <div class="hero__vital-icon" style="background:#D1FAE5;">
+              <svg data-lucide="droplets" style="width:16px;height:16px;color:#10B981;"></svg>
+            </div>
+            <div>
+              <div class="hero__vital-val">98 <span>mg/dL</span></div>
+              <div class="hero__vital-label">Blood Sugar</div>
+            </div>
+          </div>
+          <div class="hero__vital-item">
+            <div class="hero__vital-icon" style="background:#E0E7FF;">
+              <svg data-lucide="scale" style="width:16px;height:16px;color:#6366F1;"></svg>
+            </div>
+            <div>
+              <div class="hero__vital-val">68 <span>kg</span></div>
+              <div class="hero__vital-label">Weight</div>
+            </div>
+          </div>
+        </div>
+        <!-- Floating badges -->
+        <div class="hero__float-badge float-anim-2" style="top:-20px;right:-20px;">
+          <svg data-lucide="bot" style="width:14px;height:14px;"></svg>
+          AI Insights Ready
+        </div>
+        <div class="hero__float-badge float-anim-3" style="bottom:-18px;left:20px;background:var(--danger-light);color:var(--danger);">
+          <svg data-lucide="shield" style="width:14px;height:14px;"></svg>
+          SOS Active
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== STATS BAND ===== -->
+<section class="stats-band" id="stats">
+  <div class="stats-band__inner">
+    <div class="stat-item reveal">
+      <div class="stat-item__val" data-target="10000">0</div>
+      <div class="stat-item__label">Active Users</div>
+    </div>
+    <div class="stat-divider"></div>
+    <div class="stat-item reveal">
+      <div class="stat-item__val" data-target="50000">0</div>
+      <div class="stat-item__label">Health Records Logged</div>
+    </div>
+    <div class="stat-divider"></div>
+    <div class="stat-item reveal">
+      <div class="stat-item__val" data-target="99">0</div>
+      <div class="stat-item__label">% Uptime Guaranteed</div>
+    </div>
+    <div class="stat-divider"></div>
+    <div class="stat-item reveal">
+      <div class="stat-item__val" data-target="500">0</div>
+      <div class="stat-item__label">Partner Hospitals</div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== FEATURES ===== -->
+<section class="features" id="features">
+  <div class="features__inner">
+    <div class="section-header reveal">
+      <div class="section-badge">Features</div>
+      <h2>Everything you need, in one place</h2>
+      <p>From daily health logging to AI-powered emergency response — NexVita has you covered.</p>
+    </div>
+    <div class="features-grid">
+      {% set features = [
+        ('activity', 'Track Vitals', 'Log blood pressure, heart rate, glucose, weight and more. Get trend charts at a glance.', 'var(--primary)', 'var(--primary-light)'),
+        ('bot', 'AI Health Assistant', 'Chat with our Gemini-powered AI for instant health advice, symptom checks, and personalised insights.', 'var(--accent)', 'var(--accent-light)'),
+        ('alert-triangle', 'Emergency SOS', 'One-tap SOS alerts all your emergency contacts and locates the nearest hospital.', 'var(--danger)', 'var(--danger-light)'),
+        ('map-pin', 'Hospital Finder', 'Find nearby hospitals with live map, distance, ratings, and emergency service indicators.', 'var(--info)', 'var(--info-light)'),
+        ('trending-up', 'Health Insights', 'AI analyses your health trends and predicts risks before they become problems.', '#8B5CF6', '#EDE9FE'),
+        ('bell', 'Smart Reminders', 'Never miss medication, appointments, or daily check-ups with intelligent scheduling.', 'var(--warning)', 'var(--warning-light)'),
+      ] %}
+      {% for icon, title, desc, color, bg in features %}
+      <div class="feature-card reveal hover-lift card-tilt">
+        <div class="feature-card__icon" style="background:{{ bg }};color:{{ color }};">
+          <svg data-lucide="{{ icon }}"></svg>
+        </div>
+        <h3 class="feature-card__title">{{ title }}</h3>
+        <p class="feature-card__desc">{{ desc }}</p>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+
+<!-- ===== HOW IT WORKS ===== -->
+<section class="how-it-works" id="how-it-works">
+  <div class="how-it-works__inner">
+    <div class="section-header reveal">
+      <div class="section-badge" style="background:var(--accent-light);color:var(--accent);">Simple Process</div>
+      <h2>Up and running in 3 steps</h2>
+      <p>Getting started is fast, free, and takes less than 2 minutes.</p>
+    </div>
+    <div class="steps">
+      <div class="step reveal">
+        <div class="step__num">01</div>
+        <div class="step__icon"><svg data-lucide="user-plus"></svg></div>
+        <h3>Create Account</h3>
+        <p>Sign up with your email and fill in a quick health profile. Completely free, no credit card needed.</p>
+      </div>
+      <div class="step__connector reveal"></div>
+      <div class="step reveal">
+        <div class="step__num">02</div>
+        <div class="step__icon"><svg data-lucide="clipboard-list"></svg></div>
+        <h3>Log Your Health</h3>
+        <p>Record your vitals daily. Our dashboard visualises your progress with beautiful charts.</p>
+      </div>
+      <div class="step__connector reveal"></div>
+      <div class="step reveal">
+        <div class="step__num">03</div>
+        <div class="step__icon"><svg data-lucide="sparkles"></svg></div>
+        <h3>Get AI Insights</h3>
+        <p>Let NexVita's AI analyse your data and give you personalised health recommendations.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== CTA BANNER ===== -->
+<section class="cta-banner">
+  <div class="cta-banner__inner reveal">
+    <h2>Start your health journey today</h2>
+    <p>Join thousands of people who trust NexVita to keep them healthy.</p>
+    <a href="{{ url_for('auth.register') }}" class="btn btn-lg btn-ripple" style="background:white;color:var(--primary);" id="cta-register">
+      <svg data-lucide="arrow-right"></svg>
+      Create Free Account
+    </a>
+  </div>
+</section>
+
+<!-- ===== FOOTER ===== -->
+<footer class="landing-footer">
+  <div class="landing-footer__inner">
+    <div class="landing-footer__logo">
+      <div class="landing-nav__logo-icon" style="width:30px;height:30px;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="width:16px;height:16px;color:white;">
+          <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
+        </svg>
+      </div>
+      <span style="font-family:var(--font-heading);font-weight:700;font-size:var(--text-lg);">Nex<span style="color:var(--primary);">Vita</span></span>
+    </div>
+    <p style="color:var(--text-light);font-size:var(--text-sm);margin-top:var(--sp-2);">&copy; {{ now.year if now else 2025 }} NexVita. All rights reserved.</p>
+    <div style="display:flex;gap:var(--sp-6);margin-top:var(--sp-3);">
+      <a href="{{ url_for('auth.login') }}" style="font-size:var(--text-sm);color:var(--text-light);">Sign In</a>
+      <a href="{{ url_for('auth.register') }}" style="font-size:var(--text-sm);color:var(--text-light);">Register</a>
+    </div>
+  </div>
+</footer>
+{% endblock %}
+
+{% block page_js %}
+<script src="{{ url_for('static', filename='js/app.js') }}"></script>
+<script>
+  // Counter animation
+  function animateCounter(el) {
+    const target = parseInt(el.getAttribute('data-target'));
+    const suffix = target >= 10000 ? 'K+' : target === 99 ? '%' : '+';
+    const displayTarget = target >= 1000 ? Math.floor(target / 1000) : target;
+    let current = 0;
+    const step = Math.ceil(displayTarget / 60);
+    const timer = setInterval(() => {
+      current = Math.min(current + step, displayTarget);
+      el.textContent = current + suffix;
+      if (current >= displayTarget) clearInterval(timer);
+    }, 30);
+  }
+
+  // Intersection Observer for reveal + counters
+  const io = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        entry.target.classList.add('visible');
+        const counter = entry.target.querySelector('[data-target]') || (entry.target.hasAttribute('data-target') ? entry.target : null);
+        if (counter) animateCounter(counter);
+        io.unobserve(entry.target);
+      }
+    });
+  }, { threshold: 0.2 });
+
+  document.querySelectorAll('.reveal').forEach(el => io.observe(el));
+  document.querySelectorAll('[data-target]').forEach(el => {
+    const parent = el.closest('.reveal') || el;
+    io.observe(parent);
+  });
+
+  // Sticky navbar
+  window.addEventListener('scroll', () => {
+    const nav = document.getElementById('landingNav');
+    nav.classList.toggle('scrolled', window.scrollY > 50);
+  });
+
+  // Ripple effect
+  document.querySelectorAll('.btn-ripple').forEach(btn => {
+    btn.addEventListener('click', function(e) {
+      const ripple = document.createElement('span');
+      ripple.classList.add('ripple-effect');
+      const rect = this.getBoundingClientRect();
+      ripple.style.left = (e.clientX - rect.left) + 'px';
+      ripple.style.top  = (e.clientY - rect.top) + 'px';
+      this.appendChild(ripple);
+      setTimeout(() => ripple.remove(), 600);
+    });
+  });
+</script>
+{% endblock %}

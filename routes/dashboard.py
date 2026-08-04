@@ -1,0 +1,108 @@
+from flask import Blueprint, render_template, redirect, url_for, flash, request, jsonify
+from flask_login import login_required, current_user
+from database.db import db
+from models import User, Patient, HealthRecord, Reminder
+from datetime import datetime, timedelta
+from sqlalchemy import func
+import json
+
+dashboard_bp = Blueprint('dashboard', __name__, url_prefix='/dashboard')
+
+@dashboard_bp.route('/')
+@login_required
+def index():
+    # Get user's patient profile
+    patient = Patient.query.filter_by(user_id=current_user.id).first()
+
+    # Get recent health records
+    recent_records = []
+    if patient:
+        recent_records = HealthRecord.query.filter_by(user_id=current_user.id)\
+            .order_by(HealthRecord.record_date.desc())\
+            .limit(5).all()
+
+    # Calculate some statistics for the dashboard
+    total_records = HealthRecord.query.filter_by(user_id=current_user.id).count()
+
+    # Get latest vitals if available
+    latest_vitals = {}
+    if recent_records:
+        latest = recent_records[0]
+        if latest.systolic_bp and latest.diastolic_bp:
+            latest_vitals['blood_pressure'] = f"{latest.systolic_bp}/{latest.diastolic_bp}"
+        if latest.heart_rate:
+            latest_vitals['heart_rate'] = f"{latest.heart_rate} bpm"
+        if latest.temperature:
+            latest_vitals['temperature'] = f"{latest.temperature}°C"
+        if latest.weight:
+            latest_vitals['weight'] = f"{latest.weight} kg"
+        if latest.height:
+            latest_vitals['height'] = f"{latest.height} cm"
+        if latest.bmi:
+            latest_vitals['bmi'] = f"{latest.bmi}"
+
+    # Get data for charts (last 7 days)
+    week_ago = datetime.now() - timedelta(days=7)
+    weekly_records = HealthRecord.query.filter(
+        HealthRecord.user_id == current_user.id,
+        HealthRecord.record_date >= week_ago
+    ).order_by(HealthRecord.record_date).all()
+
+    # Prepare data for charts
+    dates = [r.record_date.strftime('%Y-%m-%d') for r in weekly_records]
+    systolic_bp = [r.systolic_bp for r in weekly_records if r.systolic_bp]
+    diastolic_bp = [r.diastolic_bp for r in weekly_records if r.diastolic_bp]
+    heart_rate = [r.heart_rate for r in weekly_records if r.heart_rate]
+    weight = [float(r.weight) for r in weekly_records if r.weight]
+
+    chart_data = {
+        'labels': dates,
+        'datasets': [
+            {
+                'label': 'Systolic BP',
+                'data': systolic_bp,
+                'borderColor': 'red',
+                'fill': False
+            },
+            {
+                'label': 'Diastolic BP',
+                'data': diastolic_bp,
+                'borderColor': 'blue',
+                'fill': False
+            },
+            {
+                'label': 'Heart Rate',
+                'data': heart_rate,
+                'borderColor': 'green',
+                'fill': False
+            },
+            {
+                'label': 'Weight (kg)',
+                'data': weight,
+                'borderColor': 'orange',
+                'fill': False
+            }
+        ]
+    }
+
+    upcoming_reminders = (
+        Reminder.query
+        .filter_by(user_id=current_user.id, is_active=True)
+        .order_by(Reminder.reminder_time)
+        .limit(4)
+        .all()
+    )
+
+    return render_template('dashboard/index.html',
+                         patient=patient,
+                         recent_records=recent_records,
+                         total_records=total_records,
+                         latest_vitals=latest_vitals,
+                         chart_data=json.dumps(chart_data),
+                         upcoming_reminders=upcoming_reminders)
+
+@dashboard_bp.route('/profile')
+@login_required
+def profile():
+    patient = Patient.query.filter_by(user_id=current_user.id).first()
+    return render_template('dashboard/profile.html', patient=patient, user=current_user)

@@ -1,0 +1,49 @@
+/* ===== Health Records CSS ===== */
+.health-layout {
+  display: grid;
+  grid-template-columns: 340px 1fr;
+  gap: var(--sp-6);
+  align-items: start;
+}
+
+.add-record-panel { position: sticky; top: calc(var(--topbar-h) + var(--sp-4)); }
+
+.vital-group { margin-bottom: var(--sp-4); }
+
+.vital-group__label {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--text-dark);
+  margin-bottom: var(--sp-2);
+}
+
+.vital-icon {
+  width: 26px; height: 26px;
+  border-radius: var(--radius-xs);
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+
+.vital-inputs { transition: all var(--dur-med); }
+
+.bmi-result {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  padding: var(--sp-3) var(--sp-4);
+  background: var(--primary-light);
+  border-radius: var(--radius-sm);
+  font-size: var(--text-sm);
+  font-weight: 500;
+  color: var(--primary-dark);
+  margin-top: var(--sp-2);
+}
+.bmi-result svg { color: var(--primary); width: 14px; height: 14px; }
+
+@media (max-width: 1024px) {
+  .health-layout { grid-template-columns: 1fr; }
+  .add-record-panel { position: static; }
+}

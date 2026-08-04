@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{% block title %}NexVita – Smart Health Platform{% endblock %}</title>
+  <meta name="description" content="{% block description %}NexVita – your AI-powered personal health companion. Track vitals, get insights, and stay healthy.{% endblock %}" />
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Poppins:wght@600;700;800&display=swap" rel="stylesheet" />
+
+  <!-- Core CSS -->
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/components.css') }}" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/animations.css') }}" />
+
+  <!-- Page CSS -->
+  {% block page_css %}{% endblock %}
+
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+</head>
+<body>
+
+<!-- Sidebar Overlay (mobile) -->
+<div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+<div class="app-wrapper">
+
+  <!-- ===== SIDEBAR ===== -->
+  <aside class="sidebar" id="sidebar">
+    <!-- Logo -->
+    <div class="sidebar__logo">
+      <div class="sidebar__logo-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
+        </svg>
+      </div>
+      <span class="sidebar__logo-text">Nex<span>Vita</span></span>
+    </div>
+
+    <!-- Nav -->
+    <nav class="sidebar__nav" role="navigation" aria-label="Main navigation">
+      <span class="nav-section-label">Main</span>
+
+      <a href="{{ url_for('dashboard.index') }}" id="nav-dashboard"
+         class="nav-item {% if request.endpoint == 'dashboard.index' %}active{% endif %}">
+        <svg data-lucide="layout-dashboard"></svg>
+        Dashboard
+      </a>
+
+      <a href="{{ url_for('health.index') }}" id="nav-health"
+         class="nav-item {% if request.blueprint == 'health' %}active{% endif %}">
+        <svg data-lucide="file-text"></svg>
+        Health Records
+      </a>
+
+      <a href="{{ url_for('ai.chatbot') }}" id="nav-ai"
+         class="nav-item {% if request.endpoint == 'ai.chatbot' %}active{% endif %}">
+        <svg data-lucide="bot"></svg>
+        AI Assistant
+      </a>
+
+      <a href="{{ url_for('ai.insights') }}" id="nav-insights"
+         class="nav-item {% if request.endpoint == 'ai.insights' %}active{% endif %}">
+        <svg data-lucide="trending-up"></svg>
+        Insights
+      </a>
+
+      <a href="{{ url_for('reminders.index') }}" id="nav-reminders"
+         class="nav-item {% if request.blueprint == 'reminders' %}active{% endif %}">
+        <svg data-lucide="bell"></svg>
+        Reminders
+        {% if active_reminders %}
+        <span class="badge badge-primary" style="margin-left:auto;font-size:10px;padding:2px 7px;">{{ active_reminders }}</span>
+        {% endif %}
+      </a>
+
+      <span class="nav-section-label">Emergency</span>
+
+      <a href="{{ url_for('sos.index') }}" id="nav-sos"
+         class="nav-item danger {% if request.blueprint == 'sos' %}active{% endif %}">
+        <svg data-lucide="alert-triangle"></svg>
+        SOS Emergency
+      </a>
+
+      <a href="{{ url_for('hospital.index') }}" id="nav-hospitals"
+         class="nav-item {% if request.blueprint == 'hospital' %}active{% endif %}">
+        <svg data-lucide="map-pin"></svg>
+        Hospitals
+      </a>
+
+      <span class="nav-section-label">Account</span>
+
+      <a href="{{ url_for('dashboard.profile') }}" id="nav-profile"
+         class="nav-item {% if request.endpoint == 'dashboard.profile' %}active{% endif %}">
+        <svg data-lucide="user"></svg>
+        Profile
+      </a>
+
+      {% if current_user.is_admin() %}
+      <a href="{{ url_for('admin.index') }}" id="nav-admin"
+         class="nav-item {% if request.blueprint == 'admin' %}active{% endif %}">
+        <svg data-lucide="shield"></svg>
+        Admin
+      </a>
+      {% endif %}
+    </nav>
+
+    <!-- User / Logout -->
+    <div class="sidebar__footer">
+      <div class="sidebar__user">
+        <div class="sidebar__avatar">
+          {{ current_user.first_name[0] | upper if current_user.first_name else current_user.username[0] | upper }}
+        </div>
+        <div class="sidebar__user-info">
+          <div class="sidebar__user-name">{{ current_user.get_full_name() or current_user.username }}</div>
+          <div class="sidebar__user-role">{{ current_user.role | capitalize }}</div>
+        </div>
+      </div>
+      <a href="{{ url_for('auth.logout') }}" class="nav-item danger" style="margin-top:4px;" id="nav-logout">
+        <svg data-lucide="log-out"></svg>
+        Logout
+      </a>
+    </div>
+  </aside>
+
+  <!-- ===== MAIN CONTENT ===== -->
+  <div class="main-content">
+
+    <!-- Topbar -->
+    <header class="topbar">
+      <div class="topbar__left flex items-center gap-4">
+        <button class="mobile-menu-btn" id="mobileMenuBtn" aria-label="Toggle menu">
+          <svg data-lucide="menu" style="width:20px;height:20px;"></svg>
+        </button>
+        <div>
+          <h1 style="font-size:var(--text-xl);font-weight:700;margin-bottom:0;">
+            {% block page_title %}Dashboard{% endblock %}
+          </h1>
+          <p style="font-size:var(--text-xs);color:var(--text-mid);margin:0;">
+            {% block page_subtitle %}Welcome back, {{ current_user.first_name or current_user.username }}!{% endblock %}
+          </p>
+        </div>
+      </div>
+
+      <div class="topbar__right">
+        <!-- Notification Bell -->
+        <a href="{{ url_for('reminders.index') }}" class="topbar__icon-btn" title="Reminders">
+          <svg data-lucide="bell"></svg>
+          {% if active_reminders %}
+          <span class="notification-badge badge-pulse"></span>
+          {% endif %}
+        </a>
+
+        <!-- SOS Quick Access -->
+        <a href="{{ url_for('sos.index') }}" class="topbar__icon-btn" title="SOS" style="border-color:var(--danger-light);">
+          <svg data-lucide="alert-triangle" style="color:var(--danger);"></svg>
+        </a>
+
+        <!-- Avatar Dropdown -->
+        <div class="dropdown" id="avatarDropdown">
+          <div class="topbar__avatar" onclick="document.getElementById('avatarDropdown').classList.toggle('open')">
+            {{ current_user.first_name[0] | upper if current_user.first_name else current_user.username[0] | upper }}
+          </div>
+          <div class="dropdown__menu">
+            <a href="{{ url_for('dashboard.profile') }}" class="dropdown__item">
+              <svg data-lucide="user" style="width:16px;height:16px;"></svg> Profile
+            </a>
+            <a href="{{ url_for('reminders.index') }}" class="dropdown__item">
+              <svg data-lucide="bell" style="width:16px;height:16px;"></svg> Reminders
+            </a>
+            <div class="dropdown__divider"></div>
+            <a href="{{ url_for('auth.logout') }}" class="dropdown__item danger">
+              <svg data-lucide="log-out" style="width:16px;height:16px;"></svg> Logout
+            </a>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- Flash Messages -->
+    <div class="flash-container" id="flashContainer">
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% for category, message in messages %}
+        <div class="flash {{ category }}" role="alert">
+          <svg class="flash__icon" data-lucide="{% if category == 'success' %}check-circle{% elif category == 'danger' or category == 'error' %}x-circle{% elif category == 'warning' %}alert-triangle{% else %}info{% endif %}"></svg>
+          <div class="flash__body">
+            <p class="flash__msg">{{ message }}</p>
+          </div>
+          <button class="flash__close" onclick="this.closest('.flash').remove()">
+            <svg data-lucide="x"></svg>
+          </button>
+        </div>
+        {% endfor %}
+      {% endwith %}
+    </div>
+
+    <!-- Page Content -->
+    <main class="page-content page-enter">
+      {% block content %}{% endblock %}
+    </main>
+
+  </div><!-- /main-content -->
+</div><!-- /app-wrapper -->
+
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<!-- Leaflet (maps) -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<!-- Global App JS -->
+<script src="{{ url_for('static', filename='js/app.js') }}"></script>
+
+{% block page_js %}{% endblock %}
+
+<script>
+  // Init Lucide icons
+  lucide.createIcons();
+
+  // Mobile sidebar toggle
+  const mobileBtn = document.getElementById('mobileMenuBtn');
+  const sidebar   = document.getElementById('sidebar');
+  const overlay   = document.getElementById('sidebarOverlay');
+  if (mobileBtn) {
+    mobileBtn.addEventListener('click', () => {
+      sidebar.classList.toggle('open');
+      overlay.classList.toggle('visible');
+    });
+    overlay.addEventListener('click', () => {
+      sidebar.classList.remove('open');
+      overlay.classList.remove('visible');
+    });
+  }
+
+  // Close dropdown on outside click
+  document.addEventListener('click', (e) => {
+    const dd = document.getElementById('avatarDropdown');
+    if (dd && !dd.contains(e.target)) dd.classList.remove('open');
+  });
+
+  // Auto-dismiss flash messages after 5s
+  setTimeout(() => {
+    document.querySelectorAll('.flash').forEach(f => {
+      f.style.opacity = '0';
+      f.style.transform = 'translateX(100%)';
+      f.style.transition = 'all 0.4s ease';
+      setTimeout(() => f.remove(), 400);
+    });
+  }, 5000);
+</script>
+</body>
+</html>

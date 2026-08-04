@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% block title %}Emergency Contacts – NexVita{% endblock %}
+{% block page_title %}Emergency Contacts{% endblock %}
+{% block page_subtitle %}People to alert in case of emergency{% endblock %}
+
+{% block page_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/pages/sos.css') }}" />
+{% endblock %}
+
+{% block content %}
+<div style="max-width:800px;">
+  <div class="card card-padded">
+    <div class="card__header">
+      <div>
+        <div class="card__title">Your Emergency Contacts</div>
+        <div class="card__subtitle">{{ contacts | length }} contact(s) on file</div>
+      </div>
+      <a href="{{ url_for('sos.add_emergency_contact') }}" class="btn btn-primary">
+        <svg data-lucide="user-plus"></svg> Add Contact
+      </a>
+    </div>
+    {% if contacts %}
+    <div class="contact-list">
+      {% for contact in contacts %}
+      <div class="contact-item">
+        <div class="avatar avatar-lg" style="background:linear-gradient(135deg,{% if loop.index == 1 %}var(--primary),var(--primary-dark){% elif loop.index == 2 %}var(--accent),#6D28D9{% else %}var(--info),#1D4ED8{% endif %});">
+          {{ contact.name[0] | upper }}
+        </div>
+        <div class="contact-item__body">
+          <div class="contact-item__name" style="font-size:var(--text-base);">{{ contact.name }}</div>
+          <div class="contact-item__rel">{{ contact.relationship }}</div>
+          <a href="tel:{{ contact.phone_primary }}" class="contact-item__phone">
+            <svg data-lucide="phone" style="width:12px;height:12px;"></svg>
+            {{ contact.phone_primary }}
+          </a>
+          {% if contact.email %}<div style="font-size:var(--text-xs);color:var(--text-mid);margin-top:2px;">{{ contact.email }}</div>{% endif %}
+        </div>
+        <div class="contact-item__actions" style="gap:var(--sp-3);">
+          {% if contact.is_primary %}<span class="badge badge-primary">Primary</span>{% endif %}
+          <a href="tel:{{ contact.phone_primary }}" class="btn btn-primary btn-sm">
+            <svg data-lucide="phone"></svg> Call
+          </a>
+          <a href="{{ url_for('sos.edit_emergency_contact', id=contact.id) }}" class="btn btn-ghost btn-sm">
+            <svg data-lucide="pencil"></svg> Edit
+          </a>
+          <form method="POST" action="{{ url_for('sos.delete_emergency_contact', id=contact.id) }}" onsubmit="return confirm('Remove this contact?')">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token is defined else '' }}" />
+            <button type="submit" class="btn btn-ghost btn-sm" style="color:var(--danger);">
+              <svg data-lucide="trash-2"></svg>
+            </button>
+          </form>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty-state" style="padding:var(--sp-12);">
+      <svg data-lucide="users"></svg>
+      <h3>No emergency contacts</h3>
+      <p>Add contacts who will receive alerts when you trigger SOS.</p>
+      <a href="{{ url_for('sos.add_emergency_contact') }}" class="btn btn-primary" style="margin-top:var(--sp-4);">
+        <svg data-lucide="user-plus"></svg> Add First Contact
+      </a>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

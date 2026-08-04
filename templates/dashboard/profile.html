@@ -1,0 +1,141 @@
+{% extends "base.html" %}
+{% block title %}Profile – NexVita{% endblock %}
+{% block page_title %}My Profile{% endblock %}
+{% block page_subtitle %}Manage your personal health information{% endblock %}
+
+{% block page_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/pages/dashboard.css') }}" />
+{% endblock %}
+
+{% block content %}
+<div class="profile-grid">
+  <!-- Avatar Card -->
+  <div class="card">
+    <div class="profile-card-avatar">
+      <div class="profile-avatar-large">
+        {{ current_user.first_name[0] | upper if current_user.first_name else current_user.username[0] | upper }}
+      </div>
+      <div class="profile-name">{{ current_user.get_full_name() or current_user.username }}</div>
+      <div class="profile-role">{{ current_user.role | capitalize }}</div>
+      <div class="profile-id">
+        {% if patient %}Patient ID: {{ patient.patient_id }}{% endif %}
+      </div>
+      <div style="margin-top:var(--sp-6);width:100%;display:flex;flex-direction:column;gap:var(--sp-2);">
+        <div class="flex items-center justify-between" style="padding:var(--sp-2) 0;border-bottom:1px solid var(--border);">
+          <span style="font-size:var(--text-xs);color:var(--text-mid);">Member Since</span>
+          <span style="font-size:var(--text-sm);font-weight:500;">{{ current_user.created_at.strftime('%b %Y') }}</span>
+        </div>
+        <div class="flex items-center justify-between" style="padding:var(--sp-2) 0;border-bottom:1px solid var(--border);">
+          <span style="font-size:var(--text-xs);color:var(--text-mid);">Status</span>
+          <span class="badge badge-success"><span class="dot"></span> Active</span>
+        </div>
+        {% if patient %}
+        <div class="flex items-center justify-between" style="padding:var(--sp-2) 0;">
+          <span style="font-size:var(--text-xs);color:var(--text-mid);">Blood Type</span>
+          <span class="badge badge-danger">{{ patient.blood_type or '—' }}</span>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Edit Form -->
+  <div class="card card-padded">
+    <div class="card__header" style="margin-bottom:var(--sp-6);">
+      <div class="card__title">Personal Information</div>
+      <span class="badge badge-neutral">Edit Profile</span>
+    </div>
+
+    <form method="POST" action="{{ url_for('patient.edit_profile') }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token is defined else '' }}" />
+
+      <div class="form-grid form-grid-2" style="margin-bottom:var(--sp-4);">
+        <div class="form-group">
+          <label class="form-label">First Name</label>
+          <input type="text" name="first_name" class="form-control" value="{{ current_user.first_name or '' }}" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Last Name</label>
+          <input type="text" name="last_name" class="form-control" value="{{ current_user.last_name or '' }}" />
+        </div>
+      </div>
+
+      <div class="form-group" style="margin-bottom:var(--sp-4);">
+        <label class="form-label">Email Address</label>
+        <div class="form-control-icon">
+          <svg data-lucide="mail" class="icon"></svg>
+          <input type="email" name="email" class="form-control" value="{{ current_user.email }}" />
+        </div>
+      </div>
+
+      {% if patient %}
+      <div class="form-grid form-grid-2" style="margin-bottom:var(--sp-4);">
+        <div class="form-group">
+          <label class="form-label">Date of Birth</label>
+          <input type="date" name="date_of_birth" class="form-control"
+                 value="{{ patient.date_of_birth.strftime('%Y-%m-%d') if patient.date_of_birth else '' }}" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Gender</label>
+          <select name="gender" class="form-control">
+            <option value="">Select</option>
+            <option value="male" {% if patient.gender == 'male' %}selected{% endif %}>Male</option>
+            <option value="female" {% if patient.gender == 'female' %}selected{% endif %}>Female</option>
+            <option value="other" {% if patient.gender == 'other' %}selected{% endif %}>Other</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="form-grid form-grid-2" style="margin-bottom:var(--sp-4);">
+        <div class="form-group">
+          <label class="form-label">Phone Number</label>
+          <div class="form-control-icon">
+            <svg data-lucide="phone" class="icon"></svg>
+            <input type="tel" name="phone" class="form-control" value="{{ patient.phone or '' }}" />
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Blood Type</label>
+          <select name="blood_type" class="form-control">
+            <option value="">Unknown</option>
+            {% for bt in BLOOD_TYPES %}
+            <option value="{{ bt }}" {% if patient.blood_type == bt %}selected{% endif %}>{{ bt }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+
+      <div class="form-group" style="margin-bottom:var(--sp-4);">
+        <label class="form-label">Address</label>
+        <textarea name="address" class="form-control" style="min-height:70px;">{{ patient.address or '' }}</textarea>
+      </div>
+
+      <div class="form-grid form-grid-3" style="margin-bottom:var(--sp-4);">
+        <div class="form-group">
+          <label class="form-label">City</label>
+          <input type="text" name="city" class="form-control" value="{{ patient.city or '' }}" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">State</label>
+          <input type="text" name="state" class="form-control" value="{{ patient.state or '' }}" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Country</label>
+          <input type="text" name="country" class="form-control" value="{{ patient.country or '' }}" />
+        </div>
+      </div>
+
+      <div class="form-group" style="margin-bottom:var(--sp-5);">
+        <label class="form-label">Allergies</label>
+        <textarea name="allergies" class="form-control" placeholder="List any known allergies..." style="min-height:70px;">{{ patient.allergies or '' }}</textarea>
+      </div>
+      {% endif %}
+
+      <button type="submit" class="btn btn-primary">
+        <svg data-lucide="save"></svg>
+        Save Changes
+      </button>
+    </form>
+  </div>
+</div>
+{% endblock %}

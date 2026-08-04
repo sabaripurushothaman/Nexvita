@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+{% block title %}Nearby Hospitals – NexVita{% endblock %}
+{% block page_title %}Nearby Hospitals{% endblock %}
+{% block page_subtitle %}Find hospitals close to your location{% endblock %}
+
+{% block page_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/pages/sos.css') }}" />
+{% endblock %}
+
+{% block content %}
+<div class="hospitals-layout">
+  <!-- Hospital List -->
+  <div class="hospitals-list-panel">
+    <div class="search-bar" style="margin-bottom:var(--sp-4);">
+      <svg data-lucide="search"></svg>
+      <input type="text" placeholder="Search hospitals..." id="hospitalSearch" oninput="filterHospitals(this.value)" />
+    </div>
+    <div class="hospital-list" id="hospitalList">
+      {% if hospitals %}
+        {% for hospital in hospitals %}
+        <div class="hospital-list-item hover-lift" data-name="{{ hospital.name | lower }}" data-city="{{ hospital.city | lower }}"
+             onclick="focusHospital({{ loop.index0 }})">
+          <div class="hospital-list-item__body">
+            <div class="hospital-list-item__name">{{ hospital.name }}</div>
+            <div class="hospital-list-item__addr">
+              <svg data-lucide="map-pin" style="width:12px;height:12px;"></svg>
+              {{ hospital.address }}{% if hospital.city %}, {{ hospital.city }}{% endif %}
+            </div>
+            {% if hospital.phone %}
+            <div style="font-size:var(--text-xs);color:var(--text-mid);margin-top:4px;">
+              <svg data-lucide="phone" style="width:12px;height:12px;display:inline;"></svg> {{ hospital.phone }}
+            </div>
+            {% endif %}
+          </div>
+          <div class="hospital-list-item__meta">
+            {% if hospital.emergency_services %}
+            <span class="badge badge-success"><span class="dot"></span> 24/7</span>
+            {% endif %}
+            {% if hospital.rating %}
+            <span class="badge badge-warning">★ {{ hospital.rating }}</span>
+            {% endif %}
+            {% if hospital.phone %}
+            <a href="tel:{{ hospital.phone }}" class="btn btn-primary btn-icon btn-sm" onclick="event.stopPropagation()">
+              <svg data-lucide="phone" style="width:13px;height:13px;"></svg>
+            </a>
+            {% endif %}
+          </div>
+        </div>
+        {% endfor %}
+      {% else %}
+      <div class="empty-state">
+        <svg data-lucide="building-2"></svg>
+        <h3>No hospitals found</h3>
+        <p>Enable location services to find nearby hospitals.</p>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Map Panel -->
+  <div class="hospitals-map-panel">
+    <div id="hospitalMap" style="height:100%;min-height:500px;border-radius:var(--radius);"></div>
+  </div>
+</div>
+{% endblock %}
+
+{% block page_js %}
+<script src="{{ url_for('static', filename='js/maps.js') }}"></script>
+<script>
+  const hospitalsData = [
+    {% for hospital in hospitals %}
+    {
+      name: {{ hospital.name | tojson }},
+      address: {{ (hospital.address or '') | tojson }},
+      city: {{ (hospital.city or '') | tojson }},
+      phone: {{ (hospital.phone or '') | tojson }},
+      emergency: {{ hospital.emergency_services | lower }},
+      lat: {{ hospital.latitude or 'null' }},
+      lng: {{ hospital.longitude or 'null' }},
+    }{% if not loop.last %},{% endif %}
+    {% endfor %}
+  ];
+  initHospitalMap('hospitalMap', hospitalsData, {{ latitude or 'null' }}, {{ longitude or 'null' }});
+</script>
+{% endblock %}

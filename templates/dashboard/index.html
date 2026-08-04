@@ -1,0 +1,248 @@
+{% extends "base.html" %}
+{% block title %}Dashboard – NexVita{% endblock %}
+{% block page_title %}Dashboard{% endblock %}
+{% block page_subtitle %}Hello, {{ current_user.first_name or current_user.username }}! 👋 Here's your health overview{% endblock %}
+
+{% block page_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/pages/dashboard.css') }}" />
+{% endblock %}
+
+{% block content %}
+<!-- ===== STAT CARDS ===== -->
+<div class="stats-row">
+  <div class="stat-card heart anim-fade-up anim-delay-1">
+    <div class="stat-card__icon">
+      <svg data-lucide="heart" class="heartbeat"></svg>
+    </div>
+    <div class="stat-card__body">
+      <div class="stat-card__value">
+        {% if latest_vitals.heart_rate %}
+          {{ latest_vitals.heart_rate.split(' ')[0] }}<span class="stat-card__unit">bpm</span>
+        {% else %}<span style="font-size:var(--text-lg);color:var(--text-light);">—</span>{% endif %}
+      </div>
+      <div class="stat-card__label">Heart Rate</div>
+      <div class="stat-card__sub">
+        <svg data-lucide="clock-3" style="width:12px;height:12px;"></svg> Latest reading
+      </div>
+    </div>
+  </div>
+
+  <div class="stat-card bp anim-fade-up anim-delay-2">
+    <div class="stat-card__icon">
+      <svg data-lucide="activity"></svg>
+    </div>
+    <div class="stat-card__body">
+      <div class="stat-card__value">
+        {% if latest_vitals.blood_pressure %}
+          {{ latest_vitals.blood_pressure.split('/')[0] }}<span class="stat-card__unit">mmHg</span>
+        {% else %}<span style="font-size:var(--text-lg);color:var(--text-light);">—</span>{% endif %}
+      </div>
+      <div class="stat-card__label">Blood Pressure</div>
+      <div class="stat-card__sub">
+        {% if latest_vitals.blood_pressure %}Sys/Dia: {{ latest_vitals.blood_pressure }}{% else %}No reading{% endif %}
+      </div>
+    </div>
+  </div>
+
+  <div class="stat-card sugar anim-fade-up anim-delay-3">
+    <div class="stat-card__icon">
+      <svg data-lucide="droplets"></svg>
+    </div>
+    <div class="stat-card__body">
+      <div class="stat-card__value">
+        {% if recent_records and recent_records[0].glucose_level %}
+          {{ recent_records[0].glucose_level | int }}<span class="stat-card__unit">mg/dL</span>
+        {% else %}<span style="font-size:var(--text-lg);color:var(--text-light);">—</span>{% endif %}
+      </div>
+      <div class="stat-card__label">Blood Sugar</div>
+      <div class="stat-card__sub">
+        <svg data-lucide="clock-3" style="width:12px;height:12px;"></svg> Latest reading
+      </div>
+    </div>
+  </div>
+
+  <div class="stat-card weight anim-fade-up anim-delay-4">
+    <div class="stat-card__icon">
+      <svg data-lucide="scale"></svg>
+    </div>
+    <div class="stat-card__body">
+      <div class="stat-card__value">
+        {% if latest_vitals.weight %}
+          {{ latest_vitals.weight.split(' ')[0] }}<span class="stat-card__unit">kg</span>
+        {% else %}<span style="font-size:var(--text-lg);color:var(--text-light);">—</span>{% endif %}
+      </div>
+      <div class="stat-card__label">Weight</div>
+      <div class="stat-card__sub">
+        {% if latest_vitals.bmi %}BMI: {{ latest_vitals.bmi }}{% else %}No reading{% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== MAIN GRID ===== -->
+<div class="dashboard-grid">
+
+  <!-- Chart Card -->
+  <div class="card card-padded chart-card">
+    <div class="card__header">
+      <div>
+        <div class="card__title">Health Overview</div>
+        <div class="card__subtitle">Last 7 days — vitals trend</div>
+      </div>
+      <div class="tabs" id="chartTabs">
+        <button class="tab-btn active" data-period="7">7 Days</button>
+        <button class="tab-btn" data-period="30">1 Month</button>
+        <button class="tab-btn" data-period="90">3 Months</button>
+      </div>
+    </div>
+    <div class="chart-wrapper">
+      <canvas id="healthChart" height="100"></canvas>
+    </div>
+    {% if not recent_records %}
+    <div class="empty-state" style="padding:var(--sp-8);">
+      <svg data-lucide="bar-chart-2"></svg>
+      <h3>No data yet</h3>
+      <p>Add your first health record to see trends here.</p>
+      <a href="{{ url_for('health.index') }}" class="btn btn-primary btn-sm" style="margin-top:var(--sp-4);">
+        <svg data-lucide="plus"></svg> Add Record
+      </a>
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- Reminders Widget -->
+  <div class="card card-padded reminders-widget">
+    <div class="card__header">
+      <div>
+        <div class="card__title">Upcoming Reminders</div>
+        <div class="card__subtitle">Your active schedule</div>
+      </div>
+      <a href="{{ url_for('reminders.index') }}" class="btn btn-ghost btn-sm">View All</a>
+    </div>
+    <div class="reminder-list">
+      {% if upcoming_reminders %}
+        {% for reminder in upcoming_reminders %}
+        <div class="reminder-item">
+          <div class="reminder-item__icon reminder-{{ reminder.category }}">
+            <svg data-lucide="{{ reminder.icon }}"></svg>
+          </div>
+          <div class="reminder-item__body">
+            <div class="reminder-item__title">{{ reminder.title }}</div>
+            <div class="reminder-item__time">{{ reminder.reminder_time.strftime('%b %d, %I:%M %p') }}</div>
+          </div>
+          <span class="badge badge-{% if reminder.category == 'medicine' %}primary{% elif reminder.category == 'appointment' %}warning{% else %}info{% endif %}">
+            {{ reminder.category | capitalize }}
+          </span>
+        </div>
+        {% endfor %}
+      {% else %}
+      <div class="empty-state" style="padding:var(--sp-6);">
+        <svg data-lucide="bell-off"></svg>
+        <h3>No reminders</h3>
+        <p>Add reminders to stay on track.</p>
+        <a href="{{ url_for('reminders.index') }}" class="btn btn-primary btn-sm" style="margin-top:var(--sp-3);">
+          <svg data-lucide="plus"></svg> Add
+        </a>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+</div>
+
+<!-- ===== RECENT RECORDS TABLE ===== -->
+<div class="card" style="margin-top:var(--sp-6);">
+  <div class="card-padded" style="padding-bottom:0;">
+    <div class="card__header">
+      <div>
+        <div class="card__title">Recent Health Records</div>
+        <div class="card__subtitle">{{ total_records }} total records logged</div>
+      </div>
+      <a href="{{ url_for('health.index') }}" class="btn btn-primary btn-sm">
+        <svg data-lucide="plus"></svg> Add Record
+      </a>
+    </div>
+  </div>
+  {% if recent_records %}
+  <div class="table-wrapper" style="border:none;border-radius:0;">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th>Heart Rate</th>
+          <th>Blood Pressure</th>
+          <th>Blood Sugar</th>
+          <th>Weight</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for record in recent_records %}
+        <tr>
+          <td>
+            <div style="font-weight:500;">{{ record.record_date.strftime('%b %d, %Y') }}</div>
+            <div style="font-size:var(--text-xs);color:var(--text-mid);">{{ record.record_date.strftime('%I:%M %p') }}</div>
+          </td>
+          <td>
+            {% if record.heart_rate %}
+              <span class="badge badge-danger">{{ record.heart_rate }} bpm</span>
+            {% else %}<span class="text-muted">—</span>{% endif %}
+          </td>
+          <td>
+            {% if record.systolic_bp %}
+              <span class="badge badge-info">{{ record.systolic_bp }}/{{ record.diastolic_bp }}</span>
+            {% else %}<span class="text-muted">—</span>{% endif %}
+          </td>
+          <td>
+            {% if record.glucose_level %}{{ record.glucose_level }} mg/dL{% else %}<span class="text-muted">—</span>{% endif %}
+          </td>
+          <td>
+            {% if record.weight %}{{ record.weight }} kg{% else %}<span class="text-muted">—</span>{% endif %}
+          </td>
+          <td>
+            <div class="table-actions">
+              <a href="{{ url_for('health.view_record', id=record.id) }}" class="btn btn-ghost btn-icon btn-sm" title="View">
+                <svg data-lucide="eye" style="width:14px;height:14px;"></svg>
+              </a>
+              <a href="{{ url_for('health.edit_record', id=record.id) }}" class="btn btn-ghost btn-icon btn-sm" title="Edit">
+                <svg data-lucide="pencil" style="width:14px;height:14px;"></svg>
+              </a>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="empty-state">
+    <svg data-lucide="file-text"></svg>
+    <h3>No records yet</h3>
+    <p>Start logging your vitals to track your health over time.</p>
+    <a href="{{ url_for('health.index') }}" class="btn btn-primary" style="margin-top:var(--sp-4);">
+      <svg data-lucide="plus"></svg> Add First Record
+    </a>
+  </div>
+  {% endif %}
+</div>
+
+<!-- ===== AI CHAT FLOATING CARD ===== -->
+<div class="ai-cta-card anim-fade-up">
+  <div class="ai-cta-card__avatar">
+    <svg data-lucide="bot" style="width:24px;height:24px;color:white;"></svg>
+  </div>
+  <div class="ai-cta-card__body">
+    <div class="ai-cta-card__title">Need health advice?</div>
+    <div class="ai-cta-card__sub">Chat with your AI health assistant</div>
+  </div>
+  <a href="{{ url_for('ai.chatbot') }}" class="btn btn-primary btn-sm">Ask AI</a>
+</div>
+{% endblock %}
+
+{% block page_js %}
+<script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+<script>
+  const chartData = {{ chart_data | safe }};
+  initHealthChart('healthChart', chartData);
+</script>
+{% endblock %}

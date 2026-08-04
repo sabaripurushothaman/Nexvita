@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+{% block title %}Hospitals – NexVita{% endblock %}
+{% block page_title %}Hospital Directory{% endblock %}
+{% block page_subtitle %}Manage hospitals in the NexVita database{% endblock %}
+
+{% block page_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/pages/sos.css') }}" />
+{% endblock %}
+
+{% block content %}
+<div class="card card-padded">
+  <div class="card__header">
+    <div>
+      <div class="card__title">All Hospitals</div>
+      <div class="card__subtitle">{{ hospitals.total if hospitals else 0 }} hospitals</div>
+    </div>
+    {% if current_user.is_admin() %}
+    <a href="{{ url_for('hospital.add') }}" class="btn btn-primary btn-sm">
+      <svg data-lucide="plus"></svg> Add Hospital
+    </a>
+    {% endif %}
+    <div class="search-bar" style="max-width:220px;">
+      <svg data-lucide="search"></svg>
+      <input type="text" placeholder="Search hospitals..." id="hospitalSearch" />
+    </div>
+  </div>
+
+  {% if hospitals and hospitals.items %}
+  <div class="table-wrapper" style="border:none;">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Hospital</th>
+          <th>City / State</th>
+          <th>Phone</th>
+          <th>Emergency</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for hospital in hospitals.items %}
+        <tr>
+          <td>
+            <div style="font-weight:600;">{{ hospital.name }}</div>
+            <div style="font-size:var(--text-xs);color:var(--text-mid);">{{ hospital.address or '—' }}</div>
+          </td>
+          <td>{{ hospital.city or '—' }}{% if hospital.state %}, {{ hospital.state }}{% endif %}</td>
+          <td>
+            {% if hospital.phone %}
+            <a href="tel:{{ hospital.phone }}" style="color:var(--primary);font-size:var(--text-sm);">{{ hospital.phone }}</a>
+            {% else %}—{% endif %}
+          </td>
+          <td>
+            {% if hospital.emergency_services %}
+            <span class="badge badge-success">24/7</span>
+            {% else %}
+            <span class="badge badge-neutral">No</span>
+            {% endif %}
+          </td>
+          <td>
+            <div class="table-actions">
+              <a href="{{ url_for('hospital.view', id=hospital.id) }}" class="btn btn-ghost btn-icon btn-sm">
+                <svg data-lucide="eye" style="width:14px;height:14px;"></svg>
+              </a>
+              {% if current_user.is_admin() %}
+              <a href="{{ url_for('hospital.edit', id=hospital.id) }}" class="btn btn-ghost btn-icon btn-sm">
+                <svg data-lucide="pencil" style="width:14px;height:14px;"></svg>
+              </a>
+              {% endif %}
+              {% if hospital.phone %}
+              <a href="tel:{{ hospital.phone }}" class="btn btn-primary btn-icon btn-sm">
+                <svg data-lucide="phone" style="width:14px;height:14px;"></svg>
+              </a>
+              {% endif %}
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="empty-state">
+    <svg data-lucide="building-2"></svg>
+    <h3>No hospitals found</h3>
+    {% if current_user.is_admin() %}
+    <a href="{{ url_for('hospital.add') }}" class="btn btn-primary" style="margin-top:var(--sp-4);">Add Hospital</a>
+    {% endif %}
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

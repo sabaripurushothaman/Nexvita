@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+{% block title %}Edit Contact – NexVita{% endblock %}
+{% block page_title %}Edit Emergency Contact{% endblock %}
+
+{% block page_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/pages/sos.css') }}" />
+{% endblock %}
+
+{% block content %}
+<div style="max-width:600px;">
+  <div class="card card-padded">
+    <form method="POST" action="{{ url_for('sos.edit_emergency_contact', id=contact.id) }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token is defined else '' }}" />
+
+      <div class="form-group" style="margin-bottom:var(--sp-4);">
+        <label class="form-label">Full Name</label>
+        <input type="text" name="name" class="form-control" value="{{ contact.name }}" required />
+      </div>
+
+      <div class="form-grid form-grid-2" style="margin-bottom:var(--sp-4);">
+        <div class="form-group">
+          <label class="form-label">Relationship</label>
+          <select name="relationship" class="form-control">
+            {% for r in ['Spouse','Parent','Sibling','Child','Friend','Doctor','Other'] %}
+            <option value="{{ r }}" {% if contact.relationship == r %}selected{% endif %}>{{ r }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Primary Phone</label>
+          <input type="tel" name="phone_primary" class="form-control" value="{{ contact.phone_primary }}" required />
+        </div>
+      </div>
+
+      <div class="form-grid form-grid-2" style="margin-bottom:var(--sp-4);">
+        <div class="form-group">
+          <label class="form-label">Secondary Phone</label>
+          <input type="tel" name="phone_secondary" class="form-control" value="{{ contact.phone_secondary or '' }}" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Email</label>
+          <input type="email" name="email" class="form-control" value="{{ contact.email or '' }}" />
+        </div>
+      </div>
+
+      <div class="form-group" style="margin-bottom:var(--sp-5);">
+        <label class="form-label">Address</label>
+        <textarea name="address" class="form-control" style="min-height:70px;">{{ contact.address or '' }}</textarea>
+      </div>
+
+      <div class="toggle-wrap" style="margin-bottom:var(--sp-6);">
+        <label class="toggle">
+          <input type="checkbox" name="is_primary" {% if contact.is_primary %}checked{% endif %} />
+          <span class="toggle-track"></span>
+        </label>
+        <div>
+          <div style="font-size:var(--text-sm);font-weight:600;">Primary Contact</div>
+          <div style="font-size:var(--text-xs);color:var(--text-mid);">Notified first during SOS</div>
+        </div>
+      </div>
+
+      <div class="flex gap-3">
+        <a href="{{ url_for('sos.emergency_contacts') }}" class="btn btn-ghost">Cancel</a>
+        <button type="submit" class="btn btn-primary">
+          <svg data-lucide="save"></svg> Update Contact
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

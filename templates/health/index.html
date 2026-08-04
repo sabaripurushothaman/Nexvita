@@ -1,0 +1,267 @@
+{% extends "base.html" %}
+{% block title %}Health Records – NexVita{% endblock %}
+{% block page_title %}Health Records{% endblock %}
+{% block page_subtitle %}Track and manage your health data{% endblock %}
+
+{% block page_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/pages/health.css') }}" />
+{% endblock %}
+
+{% block content %}
+<div class="health-layout">
+
+  <!-- Add Record Form Panel -->
+  <div class="add-record-panel">
+    <div class="card card-padded">
+      <div class="card__header">
+        <div>
+          <div class="card__title">Add New Record</div>
+          <div class="card__subtitle">Log today's vitals</div>
+        </div>
+        <svg data-lucide="plus-circle" style="width:20px;height:20px;color:var(--primary);"></svg>
+      </div>
+
+      <form method="POST" action="{{ url_for('health.add_record') }}" id="addRecordForm">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token is defined else '' }}" />
+
+        <div class="form-group" style="margin-bottom:var(--sp-4);">
+          <label class="form-label">Record Type</label>
+          <select name="record_type" class="form-control" required>
+            <option value="vital">Vital Signs</option>
+            {% for rtype in HEALTH_RECORD_TYPES %}
+            <option value="{{ rtype }}">{{ rtype | capitalize }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <!-- Blood Pressure -->
+        <div class="vital-group" id="bpGroup">
+          <label class="vital-group__label">
+            <div class="vital-icon" style="background:var(--info-light);color:var(--info);">
+              <svg data-lucide="activity" style="width:14px;height:14px;"></svg>
+            </div>
+            Blood Pressure
+            <label class="toggle" style="margin-left:auto;">
+              <input type="checkbox" id="bpToggle" checked />
+              <span class="toggle-track"></span>
+            </label>
+          </label>
+          <div class="form-grid form-grid-2 vital-inputs" id="bpInputs">
+            <div class="form-group">
+              <label class="form-label text-sm">Systolic (mmHg)</label>
+              <input type="number" name="systolic_bp" class="form-control" placeholder="120" min="60" max="250" />
+            </div>
+            <div class="form-group">
+              <label class="form-label text-sm">Diastolic (mmHg)</label>
+              <input type="number" name="diastolic_bp" class="form-control" placeholder="80" min="40" max="150" />
+            </div>
+          </div>
+        </div>
+
+        <!-- Heart Rate -->
+        <div class="vital-group">
+          <label class="vital-group__label">
+            <div class="vital-icon" style="background:var(--danger-light);color:var(--danger);">
+              <svg data-lucide="heart" style="width:14px;height:14px;"></svg>
+            </div>
+            Heart Rate (bpm)
+          </label>
+          <input type="number" name="heart_rate" class="form-control" placeholder="72" min="30" max="250" />
+        </div>
+
+        <!-- Blood Sugar -->
+        <div class="vital-group">
+          <label class="vital-group__label">
+            <div class="vital-icon" style="background:var(--warning-light);color:var(--warning);">
+              <svg data-lucide="droplets" style="width:14px;height:14px;"></svg>
+            </div>
+            Blood Sugar (mg/dL)
+          </label>
+          <input type="number" name="glucose_level" class="form-control" placeholder="98" step="0.1" />
+        </div>
+
+        <!-- Temperature -->
+        <div class="vital-group">
+          <label class="vital-group__label">
+            <div class="vital-icon" style="background:#FCE7F3;color:#EC4899;">
+              <svg data-lucide="thermometer" style="width:14px;height:14px;"></svg>
+            </div>
+            Temperature (°C)
+          </label>
+          <input type="number" name="temperature" class="form-control" placeholder="36.6" step="0.1" />
+        </div>
+
+        <!-- Weight & Height -->
+        <div class="form-grid form-grid-2">
+          <div class="vital-group">
+            <label class="vital-group__label">
+              <div class="vital-icon" style="background:var(--accent-light);color:var(--accent);">
+                <svg data-lucide="scale" style="width:14px;height:14px;"></svg>
+              </div>
+              Weight (kg)
+            </label>
+            <input type="number" name="weight" id="weightInput" class="form-control" placeholder="70" step="0.1" oninput="calcBMI()" />
+          </div>
+          <div class="vital-group">
+            <label class="vital-group__label">
+              <div class="vital-icon" style="background:var(--primary-light);color:var(--primary);">
+                <svg data-lucide="ruler" style="width:14px;height:14px;"></svg>
+              </div>
+              Height (cm)
+            </label>
+            <input type="number" name="height" id="heightInput" class="form-control" placeholder="170" oninput="calcBMI()" />
+          </div>
+        </div>
+
+        <!-- Auto BMI -->
+        <div class="bmi-result" id="bmiResult" style="display:none;">
+          <svg data-lucide="calculator" style="width:14px;height:14px;"></svg>
+          BMI: <strong id="bmiVal">—</strong>
+          <span id="bmiLabel" class="badge badge-success" style="margin-left:8px;"></span>
+          <input type="hidden" name="bmi" id="bmiInput" />
+        </div>
+
+        <!-- Notes -->
+        <div class="form-group" style="margin-top:var(--sp-4);">
+          <label class="form-label">Notes (optional)</label>
+          <textarea name="notes" class="form-control" placeholder="Any observations or symptoms..." style="min-height:80px;"></textarea>
+        </div>
+
+        <button type="submit" class="btn btn-primary w-full" style="margin-top:var(--sp-5);">
+          <svg data-lucide="save"></svg>
+          Save Record
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Records Table -->
+  <div class="records-panel">
+    <div class="card">
+      <div class="card-padded" style="padding-bottom:0;">
+        <div class="card__header">
+          <div>
+            <div class="card__title">Your Records</div>
+            <div class="card__subtitle">{{ records.total if records else 0 }} records total</div>
+          </div>
+          <div class="search-bar" style="max-width:220px;">
+            <svg data-lucide="search"></svg>
+            <input type="text" placeholder="Search..." id="recordSearch" />
+          </div>
+        </div>
+      </div>
+
+      {% if records and records.items %}
+      <div class="table-wrapper" style="border:none;border-radius:0;">
+        <table class="table">
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Heart Rate</th>
+              <th>Blood Pressure</th>
+              <th>Blood Sugar</th>
+              <th>Weight</th>
+              <th>BMI</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="recordsTableBody">
+            {% for record in records.items %}
+            <tr>
+              <td>
+                <div style="font-weight:500;">{{ record.record_date.strftime('%b %d, %Y') }}</div>
+                <div style="font-size:var(--text-xs);color:var(--text-mid);">{{ record.record_date.strftime('%I:%M %p') }}</div>
+              </td>
+              <td>
+                {% if record.heart_rate %}
+                  <span class="badge badge-danger">{{ record.heart_rate }} bpm</span>
+                {% else %}<span class="text-muted">—</span>{% endif %}
+              </td>
+              <td>
+                {% if record.systolic_bp %}
+                  <span class="badge badge-info">{{ record.systolic_bp }}/{{ record.diastolic_bp }}</span>
+                {% else %}<span class="text-muted">—</span>{% endif %}
+              </td>
+              <td>{{ record.glucose_level | round(1) if record.glucose_level else '—' }}</td>
+              <td>{{ record.weight if record.weight else '—' }}</td>
+              <td>
+                {% if record.bmi %}
+                  <span class="badge {% if record.bmi < 18.5 %}badge-warning{% elif record.bmi < 25 %}badge-success{% elif record.bmi < 30 %}badge-warning{% else %}badge-danger{% endif %}">
+                    {{ record.bmi | round(1) }}
+                  </span>
+                {% else %}<span class="text-muted">—</span>{% endif %}
+              </td>
+              <td>
+                <div class="table-actions">
+                  <a href="{{ url_for('health.view_record', id=record.id) }}" class="btn btn-ghost btn-icon btn-sm" title="View">
+                    <svg data-lucide="eye" style="width:14px;height:14px;"></svg>
+                  </a>
+                  <a href="{{ url_for('health.edit_record', id=record.id) }}" class="btn btn-ghost btn-icon btn-sm" title="Edit">
+                    <svg data-lucide="pencil" style="width:14px;height:14px;"></svg>
+                  </a>
+                  <form method="POST" action="{{ url_for('health.delete_record', id=record.id) }}" style="display:inline;" onsubmit="return confirm('Delete this record?')">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token is defined else '' }}" />
+                    <button type="submit" class="btn btn-ghost btn-icon btn-sm" title="Delete" style="color:var(--danger);">
+                      <svg data-lucide="trash-2" style="width:14px;height:14px;"></svg>
+                    </button>
+                  </form>
+                </div>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Pagination -->
+      {% if records.pages > 1 %}
+      <div class="pagination" style="padding:var(--sp-4);">
+        {% if records.has_prev %}
+        <a href="{{ url_for('health.index', page=records.prev_num) }}" class="page-btn">
+          <svg data-lucide="chevron-left" style="width:14px;height:14px;"></svg>
+        </a>
+        {% endif %}
+        {% for p in records.iter_pages() %}
+          {% if p %}
+          <a href="{{ url_for('health.index', page=p) }}" class="page-btn {% if p == records.page %}active{% endif %}">{{ p }}</a>
+          {% endif %}
+        {% endfor %}
+        {% if records.has_next %}
+        <a href="{{ url_for('health.index', page=records.next_num) }}" class="page-btn">
+          <svg data-lucide="chevron-right" style="width:14px;height:14px;"></svg>
+        </a>
+        {% endif %}
+      </div>
+      {% endif %}
+
+      {% else %}
+      <div class="empty-state">
+        <svg data-lucide="clipboard-list"></svg>
+        <h3>No records yet</h3>
+        <p>Start tracking your health by adding your first record.</p>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block page_js %}
+<script>
+function calcBMI() {
+  const w = parseFloat(document.getElementById('weightInput').value);
+  const h = parseFloat(document.getElementById('heightInput').value) / 100;
+  const result = document.getElementById('bmiResult');
+  if (!w || !h) { result.style.display='none'; return; }
+  const bmi = (w / (h * h)).toFixed(1);
+  document.getElementById('bmiVal').textContent = bmi;
+  document.getElementById('bmiInput').value = bmi;
+  const label = document.getElementById('bmiLabel');
+  if (bmi < 18.5)      { label.textContent='Underweight'; label.className='badge badge-warning'; }
+  else if (bmi < 25)   { label.textContent='Normal';      label.className='badge badge-success'; }
+  else if (bmi < 30)   { label.textContent='Overweight';  label.className='badge badge-warning'; }
+  else                 { label.textContent='Obese';       label.className='badge badge-danger'; }
+  result.style.display = 'flex';
+}
+</script>
+{% endblock %}

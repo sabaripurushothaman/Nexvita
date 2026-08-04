@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% block title %}Risk Assessment – NexVita{% endblock %}
+{% block page_title %}Health Risk Assessment{% endblock %}
+{% block page_subtitle %}AI-powered evaluation of your health risks{% endblock %}
+
+{% block page_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/pages/ai.css') }}" />
+{% endblock %}
+
+{% block content %}
+<div style="max-width:700px;">
+  <div class="card card-padded">
+    <div style="margin-bottom:var(--sp-5);">
+      <p style="font-size:var(--text-sm);color:var(--text-mid);">
+        Based on your health records, NexVita AI will evaluate your risk levels for common conditions and provide actionable recommendations.
+      </p>
+    </div>
+
+    {% if assessment %}
+    <div class="insights-list">
+      {% for item in assessment %}
+      <div class="insight-item {{ item.risk_level }}">
+        <div class="insight-item__icon">
+          <svg data-lucide="{% if item.risk_level == 'low' %}check-circle{% elif item.risk_level == 'moderate' %}alert-circle{% else %}alert-triangle{% endif %}"></svg>
+        </div>
+        <div class="insight-item__body">
+          <div class="insight-item__title">{{ item.condition }} — <span style="color:{% if item.risk_level == 'low' %}var(--primary){% elif item.risk_level == 'moderate' %}var(--warning){% else %}var(--danger){% endif %};">{{ item.risk_level | capitalize }} Risk</span></div>
+          <div class="insight-item__desc">{{ item.recommendation }}</div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    <div style="margin-top:var(--sp-6);">
+      <a href="{{ url_for('ai.chatbot') }}" class="btn btn-primary btn-sm"><svg data-lucide="bot"></svg> Ask AI for More Details</a>
+    </div>
+    {% else %}
+    <form method="POST" action="{{ url_for('ai.health_risk_assessment') }}" id="riskForm">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token is defined else '' }}" />
+      <div class="disclaimer" style="padding:var(--sp-4);background:var(--info-light);border-radius:var(--radius-sm);margin-bottom:var(--sp-5);display:flex;gap:var(--sp-3);">
+        <svg data-lucide="info" style="width:16px;height:16px;color:var(--info);flex-shrink:0;margin-top:2px;"></svg>
+        <p style="font-size:var(--text-sm);">We'll use your existing health records. Add more records for a more accurate assessment.</p>
+      </div>
+      <button type="submit" class="btn btn-primary" id="riskBtn">
+        <svg data-lucide="shield-alert"></svg> Run Risk Assessment
+      </button>
+    </form>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}
+
+{% block page_js %}
+<script>
+const f = document.getElementById('riskForm');
+if (f) {
+  f.addEventListener('submit', () => {
+    const btn = document.getElementById('riskBtn');
+    btn.innerHTML = '<span class="spinner spinner-sm"></span> Analysing...';
+    btn.disabled = true;
+  });
+}
+</script>
+{% endblock %}

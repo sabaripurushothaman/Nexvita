@@ -1,0 +1,98 @@
+{% extends "base.html" %}
+{% block title %}Symptom Checker – NexVita{% endblock %}
+{% block page_title %}Symptom Checker{% endblock %}
+{% block page_subtitle %}Describe your symptoms for an AI-powered health assessment{% endblock %}
+
+{% block page_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/pages/ai.css') }}" />
+{% endblock %}
+
+{% block content %}
+<div style="max-width:760px;">
+  <div class="card card-padded">
+    <div class="card__header" style="margin-bottom:var(--sp-6);">
+      <div>
+        <div class="card__title">
+          <svg data-lucide="stethoscope" style="width:18px;height:18px;display:inline;color:var(--primary);margin-right:6px;"></svg>
+          Describe Your Symptoms
+        </div>
+        <div class="card__subtitle">Powered by AI — not a substitute for professional medical advice</div>
+      </div>
+    </div>
+
+    <form method="POST" action="{{ url_for('ai.symptom_checker') }}" id="symptomForm">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token is defined else '' }}" />
+
+      <div class="form-group" style="margin-bottom:var(--sp-5);">
+        <label class="form-label">Describe your symptoms in detail <span class="required">*</span></label>
+        <textarea name="symptoms" class="form-control" required style="min-height:140px;"
+                  placeholder="e.g. I have had a headache for 3 days, mild fever around 38°C, and fatigue...">{{ symptoms or '' }}</textarea>
+      </div>
+
+      <div class="form-grid form-grid-3" style="margin-bottom:var(--sp-5);">
+        <div class="form-group">
+          <label class="form-label">Duration</label>
+          <select name="duration" class="form-control">
+            <option value="">Select...</option>
+            <option>Less than 24 hours</option>
+            <option>1–3 days</option>
+            <option>4–7 days</option>
+            <option>1–2 weeks</option>
+            <option>More than 2 weeks</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Severity</label>
+          <select name="severity" class="form-control">
+            <option value="">Select...</option>
+            <option>Mild</option>
+            <option>Moderate</option>
+            <option>Severe</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Temperature (°C)</label>
+          <input type="number" name="temperature" class="form-control" step="0.1" placeholder="e.g. 38.2" />
+        </div>
+      </div>
+
+      <div class="disclaimer" style="padding:var(--sp-4);background:var(--warning-light);border-radius:var(--radius-sm);margin-bottom:var(--sp-5);display:flex;gap:var(--sp-3);">
+        <svg data-lucide="alert-triangle" style="width:16px;height:16px;color:var(--warning);flex-shrink:0;margin-top:2px;"></svg>
+        <p style="font-size:var(--text-sm);color:var(--text-dark);">This tool provides general health information only. For emergencies, call 112 or visit a hospital immediately.</p>
+      </div>
+
+      <button type="submit" class="btn btn-primary" id="symptomBtn">
+        <svg data-lucide="search"></svg> Analyse Symptoms
+      </button>
+    </form>
+
+    {% if analysis %}
+    <div class="analysis-result" style="margin-top:var(--sp-8);padding-top:var(--sp-6);border-top:1px solid var(--border);">
+      <div class="card__title" style="margin-bottom:var(--sp-4);">
+        <svg data-lucide="clipboard-check" style="width:18px;height:18px;display:inline;color:var(--primary);margin-right:6px;"></svg>
+        AI Analysis
+      </div>
+      <div style="font-size:var(--text-sm);line-height:1.8;white-space:pre-wrap;">{{ analysis }}</div>
+      <div style="margin-top:var(--sp-5);display:flex;gap:var(--sp-3);">
+        <a href="{{ url_for('ai.chatbot') }}" class="btn btn-primary btn-sm">
+          <svg data-lucide="bot"></svg> Continue in AI Chat
+        </a>
+        <a href="{{ url_for('sos.index') }}" class="btn btn-ghost btn-sm" style="color:var(--danger);">
+          <svg data-lucide="alert-triangle"></svg> Emergency SOS
+        </a>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}
+
+{% block page_js %}
+<script>
+document.getElementById('symptomForm').addEventListener('submit', function() {
+  const btn = document.getElementById('symptomBtn');
+  btn.innerHTML = '<span class="spinner spinner-sm"></span> Analysing...';
+  btn.disabled = true;
+});
+</script>
+{% endblock %}

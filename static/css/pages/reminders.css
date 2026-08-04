@@ -1,0 +1,109 @@
+/* ===== Reminders CSS ===== */
+.reminders-page { display: flex; flex-direction: column; gap: var(--sp-6); }
+
+.reminders-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--sp-4);
+}
+
+.category-tabs {
+  display: flex;
+  gap: var(--sp-2);
+  flex-wrap: wrap;
+}
+
+.cat-tab {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  padding: 8px 16px;
+  border-radius: var(--radius-full);
+  font-size: var(--text-sm);
+  font-weight: 500;
+  color: var(--text-mid);
+  border: 1.5px solid var(--border);
+  background: var(--bg-card);
+  transition: all var(--dur-fast);
+}
+
+.cat-tab:hover { border-color: var(--primary); color: var(--primary); background: var(--primary-light); }
+.cat-tab.active { background: var(--primary); color: white; border-color: var(--primary); box-shadow: var(--shadow-primary); }
+
+.cat-count {
+  background: rgba(255,255,255,.25);
+  border-radius: var(--radius-full);
+  padding: 1px 7px;
+  font-size: var(--text-xs);
+}
+.cat-tab:not(.active) .cat-count { background: var(--bg-page); }
+
+.reminder-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  gap: var(--sp-4);
+}
+
+.reminder-card {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-4);
+  padding: var(--sp-5);
+  background: var(--bg-card);
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--primary);
+  box-shadow: var(--shadow-xs);
+  transition: all var(--dur-med) var(--ease-out);
+}
+
+.reminder-card:hover { box-shadow: var(--shadow-md); transform: translateY(-1px); }
+.reminder-card.inactive { opacity: 0.6; border-left-color: var(--text-xlight); }
+
+/* Category left border colours */
+.reminder-card.remind-medicine    { border-left-color: var(--primary); }
+.reminder-card.remind-water       { border-left-color: var(--info); }
+.reminder-card.remind-appointment { border-left-color: var(--warning); }
+.reminder-card.remind-checkup     { border-left-color: var(--success); }
+.reminder-card.remind-exercise    { border-left-color: var(--accent); }
+
+.reminder-card__icon {
+  width: 44px; height: 44px;
+  border-radius: var(--radius-sm);
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+  background: var(--primary-light);
+  color: var(--primary);
+}
+.reminder-card__icon svg { width: 20px; height: 20px; }
+
+.remind-water    .reminder-card__icon { background: var(--info-light);    color: var(--info); }
+.remind-appointment .reminder-card__icon { background: var(--warning-light); color: var(--warning); }
+.remind-checkup  .reminder-card__icon { background: var(--success-light); color: var(--success); }
+.remind-exercise .reminder-card__icon { background: var(--accent-light);  color: var(--accent); }
+
+.reminder-card__body { flex: 1; min-width: 0; }
+.reminder-card__title { font-weight: 600; font-size: var(--text-sm); }
+.reminder-card__time  { font-size: var(--text-xs); color: var(--text-mid); margin-top: 4px; display: flex; align-items: center; gap: 4px; }
+.reminder-card__notes { font-size: var(--text-xs); color: var(--text-light); margin-top: 4px; }
+
+.reminder-card__meta {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: var(--sp-2);
+}
+
+.reminder-card__actions {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--sp-2);
+}
+
+@media (max-width: 768px) {
+  .reminder-cards { grid-template-columns: 1fr; }
+  .reminder-card { flex-wrap: wrap; }
+}
