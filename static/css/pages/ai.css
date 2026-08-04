@@ -271,10 +271,80 @@
 .activity-item__date { min-width: 48px; text-align: center; }
 .activity-item__vitals { display: flex; flex-wrap: wrap; gap: 4px; }
 
+/* Insights Actions */
+.insight-actions {
+  margin-top: var(--sp-6);
+  display: flex;
+  gap: var(--sp-3);
+  flex-wrap: wrap;
+}
+
+/* ===== Responsive Breakpoints ===== */
+@media (max-width: 1200px) {
+  .insights-stats-row {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .insights-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 @media (max-width: 1100px) {
-  .insights-stats-row { grid-template-columns: 1fr 1fr; }
-  .insights-grid { grid-template-columns: 1fr; }
-  .chatbot-layout { grid-template-columns: 1fr; height: auto; }
-  .chat-panel { min-height: 500px; }
-  .chat-sidebar { display: none; }
+  .chatbot-layout {
+    grid-template-columns: 1fr;
+    height: auto;
+  }
+  .chat-panel {
+    min-height: 500px;
+  }
+  .chat-sidebar {
+    display: none;
+  }
+}
+
+@media (max-width: 768px) {
+  .insights-stats-row {
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--sp-3);
+  }
+  .insight-score-card {
+    gap: var(--sp-3);
+    padding: var(--sp-4);
+  }
+  .insight-item {
+    gap: var(--sp-3);
+    padding: var(--sp-3);
+  }
+  .chat-msg {
+    max-width: 88%;
+  }
+}
+
+@media (max-width: 576px) {
+  .insights-stats-row {
+    grid-template-columns: 1fr;
+  }
+  .insight-score-card {
+    flex-direction: row;
+    align-items: center;
+    justify-content: flex-start;
+  }
+  .insight-actions {
+    flex-direction: column;
+  }
+  .insight-actions .btn {
+    width: 100%;
+    justify-content: center;
+  }
+  .activity-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--sp-2);
+  }
+  .activity-item__date {
+    text-align: left;
+    display: flex;
+    gap: var(--sp-2);
+    align-items: center;
+  }
 }
