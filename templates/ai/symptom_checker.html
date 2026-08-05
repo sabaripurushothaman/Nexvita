@@ -10,22 +10,20 @@
 {% block content %}
 <div style="max-width:760px;">
   <div class="card card-padded">
-    <div class="card__header" style="margin-bottom:var(--sp-6);">
+    <div class="card__header" style="margin-bottom:var(--sp-5);">
       <div>
         <div class="card__title">
           <svg data-lucide="stethoscope" style="width:18px;height:18px;display:inline;color:var(--primary);margin-right:6px;"></svg>
           Describe Your Symptoms
         </div>
-        <div class="card__subtitle">Powered by AI — not a substitute for professional medical advice</div>
+        <div class="card__subtitle">AI-powered analysis — not a substitute for medical advice</div>
       </div>
     </div>
 
     <form method="POST" action="{{ url_for('ai.symptom_checker') }}" id="symptomForm">
-      <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token is defined else '' }}" />
-
       <div class="form-group" style="margin-bottom:var(--sp-5);">
         <label class="form-label">Describe your symptoms in detail <span class="required">*</span></label>
-        <textarea name="symptoms" class="form-control" required style="min-height:140px;"
+        <textarea name="symptoms" class="form-control" required style="min-height:140px;resize:vertical;"
                   placeholder="e.g. I have had a headache for 3 days, mild fever around 38°C, and fatigue...">{{ symptoms or '' }}</textarea>
       </div>
 
@@ -56,9 +54,11 @@
         </div>
       </div>
 
-      <div class="disclaimer" style="padding:var(--sp-4);background:var(--warning-light);border-radius:var(--radius-sm);margin-bottom:var(--sp-5);display:flex;gap:var(--sp-3);">
+      <div style="padding:var(--sp-4);background:var(--warning-light);border-radius:var(--radius-sm);margin-bottom:var(--sp-5);display:flex;gap:var(--sp-3);">
         <svg data-lucide="alert-triangle" style="width:16px;height:16px;color:var(--warning);flex-shrink:0;margin-top:2px;"></svg>
-        <p style="font-size:var(--text-sm);color:var(--text-dark);">This tool provides general health information only. For emergencies, call 112 or visit a hospital immediately.</p>
+        <p style="font-size:var(--text-sm);color:var(--text-dark);">
+          For emergencies (chest pain, difficulty breathing, loss of consciousness), call <strong>112</strong> or go to hospital immediately.
+        </p>
       </div>
 
       <button type="submit" class="btn btn-primary" id="symptomBtn">
@@ -67,18 +67,24 @@
     </form>
 
     {% if analysis %}
-    <div class="analysis-result" style="margin-top:var(--sp-8);padding-top:var(--sp-6);border-top:1px solid var(--border);">
-      <div class="card__title" style="margin-bottom:var(--sp-4);">
-        <svg data-lucide="clipboard-check" style="width:18px;height:18px;display:inline;color:var(--primary);margin-right:6px;"></svg>
-        AI Analysis
+    <div style="margin-top:var(--sp-8);padding-top:var(--sp-6);border-top:1px solid var(--border);">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:var(--sp-4);">
+        <div class="card__title">
+          <svg data-lucide="clipboard-check" style="width:18px;height:18px;display:inline;color:var(--primary);margin-right:6px;"></svg>
+          AI Analysis
+        </div>
+        <span style="font-size:var(--text-xs);color:var(--text-mid);">Powered by Gemini</span>
       </div>
-      <div style="font-size:var(--text-sm);line-height:1.8;white-space:pre-wrap;">{{ analysis }}</div>
-      <div style="margin-top:var(--sp-5);display:flex;gap:var(--sp-3);">
+      <div class="ai-markdown-output" id="analysisOutput" data-raw="{{ analysis | e }}"></div>
+      <div style="margin-top:var(--sp-5);display:flex;gap:var(--sp-3);flex-wrap:wrap;">
         <a href="{{ url_for('ai.chatbot') }}" class="btn btn-primary btn-sm">
           <svg data-lucide="bot"></svg> Continue in AI Chat
         </a>
         <a href="{{ url_for('sos.index') }}" class="btn btn-ghost btn-sm" style="color:var(--danger);">
           <svg data-lucide="alert-triangle"></svg> Emergency SOS
+        </a>
+        <a href="{{ url_for('ai.symptom_checker') }}" class="btn btn-ghost btn-sm">
+          <svg data-lucide="refresh-cw"></svg> Check Again
         </a>
       </div>
     </div>
@@ -88,11 +94,17 @@
 {% endblock %}
 
 {% block page_js %}
+<script src="https://cdn.jsdelivr.net/npm/marked@9.1.6/marked.min.js"></script>
 <script>
 document.getElementById('symptomForm').addEventListener('submit', function() {
   const btn = document.getElementById('symptomBtn');
-  btn.innerHTML = '<span class="spinner spinner-sm"></span> Analysing...';
+  btn.innerHTML = '<span class="spinner spinner-sm"></span> Analysing…';
   btn.disabled = true;
 });
+const out = document.getElementById('analysisOutput');
+if (out && window.marked) {
+  const raw = out.getAttribute('data-raw');
+  if (raw) out.innerHTML = marked.parse(raw);
+}
 </script>
 {% endblock %}

@@ -1,63 +1,72 @@
 {% extends "base.html" %}
 {% block title %}Risk Assessment – NexVita{% endblock %}
 {% block page_title %}Health Risk Assessment{% endblock %}
-{% block page_subtitle %}AI-powered evaluation of your health risks{% endblock %}
+{% block page_subtitle %}AI-powered evaluation based on your health records{% endblock %}
 
 {% block page_css %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/pages/ai.css') }}" />
 {% endblock %}
 
 {% block content %}
-<div style="max-width:700px;">
+<div style="max-width:800px;">
+
+  {# Back link #}
+  <a href="{{ url_for('ai.chatbot') }}" class="btn btn-ghost btn-sm" style="margin-bottom:var(--sp-5);">
+    <svg data-lucide="arrow-left"></svg> Back to AI Chat
+  </a>
+
   <div class="card card-padded">
-    <div style="margin-bottom:var(--sp-5);">
-      <p style="font-size:var(--text-sm);color:var(--text-mid);">
-        Based on your health records, NexVita AI will evaluate your risk levels for common conditions and provide actionable recommendations.
-      </p>
+    <div style="display:flex;align-items:center;gap:var(--sp-3);margin-bottom:var(--sp-5);">
+      <div class="avatar" style="background:linear-gradient(135deg,var(--warning),#F59E0B);">
+        <svg data-lucide="shield-alert" style="width:18px;height:18px;color:white;"></svg>
+      </div>
+      <div>
+        <div class="card__title">Health Risk Assessment</div>
+        <div class="card__subtitle">Based on your latest health records — Powered by Gemini AI</div>
+      </div>
     </div>
 
-    {% if assessment %}
-    <div class="insights-list">
-      {% for item in assessment %}
-      <div class="insight-item {{ item.risk_level }}">
-        <div class="insight-item__icon">
-          <svg data-lucide="{% if item.risk_level == 'low' %}check-circle{% elif item.risk_level == 'moderate' %}alert-circle{% else %}alert-triangle{% endif %}"></svg>
-        </div>
-        <div class="insight-item__body">
-          <div class="insight-item__title">{{ item.condition }} — <span style="color:{% if item.risk_level == 'low' %}var(--primary){% elif item.risk_level == 'moderate' %}var(--warning){% else %}var(--danger){% endif %};">{{ item.risk_level | capitalize }} Risk</span></div>
-          <div class="insight-item__desc">{{ item.recommendation }}</div>
-        </div>
-      </div>
-      {% endfor %}
+    {% if not ai_configured %}
+    <div class="ai-config-warning" style="border-radius:var(--radius-sm);margin-bottom:var(--sp-5);">
+      <svg data-lucide="alert-triangle"></svg>
+      <div>AI key not configured. <a href="{{ url_for('ai.chatbot') }}">See setup instructions.</a></div>
     </div>
-    <div style="margin-top:var(--sp-6);">
-      <a href="{{ url_for('ai.chatbot') }}" class="btn btn-primary btn-sm"><svg data-lucide="bot"></svg> Ask AI for More Details</a>
+    {% endif %}
+
+    {% if assessment %}
+    <div class="ai-markdown-output" id="assessmentOutput" data-raw="{{ assessment | e }}"></div>
+    <div style="margin-top:var(--sp-5);display:flex;gap:var(--sp-3);flex-wrap:wrap;">
+      <a href="{{ url_for('ai.chatbot') }}" class="btn btn-primary btn-sm">
+        <svg data-lucide="bot"></svg> Discuss with AI
+      </a>
+      <a href="{{ url_for('ai.recommendations') }}" class="btn btn-ghost btn-sm">
+        <svg data-lucide="sparkles"></svg> Get Recommendations
+      </a>
+      <a href="{{ url_for('health.index') }}" class="btn btn-ghost btn-sm">
+        <svg data-lucide="clipboard-list"></svg> View Health Records
+      </a>
     </div>
     {% else %}
-    <form method="POST" action="{{ url_for('ai.health_risk_assessment') }}" id="riskForm">
-      <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token is defined else '' }}" />
-      <div class="disclaimer" style="padding:var(--sp-4);background:var(--info-light);border-radius:var(--radius-sm);margin-bottom:var(--sp-5);display:flex;gap:var(--sp-3);">
-        <svg data-lucide="info" style="width:16px;height:16px;color:var(--info);flex-shrink:0;margin-top:2px;"></svg>
-        <p style="font-size:var(--text-sm);">We'll use your existing health records. Add more records for a more accurate assessment.</p>
-      </div>
-      <button type="submit" class="btn btn-primary" id="riskBtn">
-        <svg data-lucide="shield-alert"></svg> Run Risk Assessment
-      </button>
-    </form>
+    <div class="health-empty">
+      <svg data-lucide="shield"></svg>
+      <h3>No assessment data</h3>
+      <p>Add health records to receive a personalised risk assessment.</p>
+      <a href="{{ url_for('health.index') }}" class="btn btn-primary btn-sm">
+        <svg data-lucide="plus"></svg> Add Health Records
+      </a>
+    </div>
     {% endif %}
   </div>
 </div>
 {% endblock %}
 
 {% block page_js %}
+<script src="https://cdn.jsdelivr.net/npm/marked@9.1.6/marked.min.js"></script>
 <script>
-const f = document.getElementById('riskForm');
-if (f) {
-  f.addEventListener('submit', () => {
-    const btn = document.getElementById('riskBtn');
-    btn.innerHTML = '<span class="spinner spinner-sm"></span> Analysing...';
-    btn.disabled = true;
-  });
+const el = document.getElementById('assessmentOutput');
+if (el && window.marked) {
+  const raw = el.getAttribute('data-raw');
+  if (raw) el.innerHTML = marked.parse(raw);
 }
 </script>
 {% endblock %}

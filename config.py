@@ -26,8 +26,12 @@ class Config:
     ADMINS = ['admin@example.com']
     # Pagination
     POSTS_PER_PAGE = 20
-    # AI API keys (if needed)
-    OPENAI_API_KEY = os.environ.get('OPENAI_API_KEY')
+    # AI API keys
+    OPENAI_API_KEY  = os.environ.get('OPENAI_API_KEY')
+    GEMINI_API_KEY  = os.environ.get('GEMINI_API_KEY')
+    AI_PROVIDER     = os.environ.get('AI_PROVIDER', 'gemini')  # 'gemini' | 'openai'
+    AI_RATE_LIMIT   = int(os.environ.get('AI_RATE_LIMIT_PER_MIN', '20'))
+    AI_CACHE_TTL    = int(os.environ.get('AI_CACHE_TTL', '300'))
     # Map API keys
     GOOGLE_MAPS_API_KEY = os.environ.get('GOOGLE_MAPS_API_KEY')
 

@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+{% block title %}Health Recommendations – NexVita{% endblock %}
+{% block page_title %}Personalised Recommendations{% endblock %}
+{% block page_subtitle %}AI-generated health recommendations tailored for you{% endblock %}
+
+{% block page_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/pages/ai.css') }}" />
+{% endblock %}
+
+{% block content %}
+<div style="max-width:800px;">
+  <a href="{{ url_for('ai.chatbot') }}" class="btn btn-ghost btn-sm" style="margin-bottom:var(--sp-5);">
+    <svg data-lucide="arrow-left"></svg> Back to AI Chat
+  </a>
+
+  <div class="card card-padded">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:var(--sp-5);">
+      <div style="display:flex;align-items:center;gap:var(--sp-3);">
+        <div class="avatar" style="background:linear-gradient(135deg,var(--success),#059669);">
+          <svg data-lucide="sparkles" style="width:18px;height:18px;color:white;"></svg>
+        </div>
+        <div>
+          <div class="card__title">Your Health Recommendations</div>
+          <div class="card__subtitle">Powered by Gemini AI · Based on your health data</div>
+        </div>
+      </div>
+      <button class="btn btn-ghost btn-sm" onclick="window.print()">
+        <svg data-lucide="printer"></svg> Print
+      </button>
+    </div>
+
+    {% if not ai_configured %}
+    <div class="ai-config-warning" style="border-radius:var(--radius-sm);margin-bottom:var(--sp-5);">
+      <svg data-lucide="alert-triangle"></svg>
+      <div>AI key not configured. <a href="{{ url_for('ai.chatbot') }}">See setup instructions.</a></div>
+    </div>
+    {% endif %}
+
+    {% if recommendations %}
+    <div class="ai-markdown-output" id="recsOutput" data-raw="{{ recommendations | e }}"></div>
+    <div style="margin-top:var(--sp-5);display:flex;gap:var(--sp-3);flex-wrap:wrap;">
+      <a href="{{ url_for('ai.chatbot') }}" class="btn btn-primary btn-sm">
+        <svg data-lucide="bot"></svg> Ask Follow-up Questions
+      </a>
+      <a href="{{ url_for('ai.generate_report') }}" class="btn btn-ghost btn-sm">
+        <svg data-lucide="file-text"></svg> Full Health Report
+      </a>
+    </div>
+    {% else %}
+    <div class="health-empty">
+      <svg data-lucide="sparkles"></svg>
+      <h3>No recommendations yet</h3>
+      <p>Add health records to receive personalised recommendations from AI.</p>
+      <a href="{{ url_for('health.index') }}" class="btn btn-primary btn-sm">
+        <svg data-lucide="plus"></svg> Add Health Records
+      </a>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}
+
+{% block page_js %}
+<script src="https://cdn.jsdelivr.net/npm/marked@9.1.6/marked.min.js"></script>
+<script>
+const el = document.getElementById('recsOutput');
+if (el && window.marked) {
+  const raw = el.getAttribute('data-raw');
+  if (raw) el.innerHTML = marked.parse(raw);
+}
+</script>
+{% endblock %}
