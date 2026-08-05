@@ -1,51 +1,328 @@
 {% extends "base.html" %}
-{% block title %}Health Record – NexVita{% endblock %}
-{% block page_title %}Record Details{% endblock %}
+{% block title %}{{ record.get_display_title() }} – NexVita{% endblock %}
+{% block page_title %}{{ record.get_display_title() }}{% endblock %}
+{% block page_subtitle %}Health record detail{% endblock %}
+
+{% block page_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/pages/health.css') }}" />
+<style>
+  @media print {
+    .sidebar, .topbar, .record-actions-bar, .btn { display: none !important; }
+    .main-content { padding: 0 !important; }
+    .view-record-layout { grid-template-columns: 1fr !important; }
+  }
+</style>
+{% endblock %}
 
 {% block content %}
-<div style="max-width:700px;">
-  <div class="card card-padded">
-    <div class="card__header" style="margin-bottom:var(--sp-6);">
-      <div>
-        <div class="card__title">Health Record — {{ record.record_date.strftime('%B %d, %Y') }}</div>
-        <div class="card__subtitle">Recorded at {{ record.record_date.strftime('%I:%M %p') }}</div>
-      </div>
-      <div class="flex gap-2">
-        <a href="{{ url_for('health.edit_record', id=record.id) }}" class="btn btn-ghost btn-sm">
-          <svg data-lucide="pencil"></svg> Edit
-        </a>
-        <a href="{{ url_for('health.index') }}" class="btn btn-ghost btn-sm">
-          <svg data-lucide="arrow-left"></svg> Back
-        </a>
-      </div>
-    </div>
+{% set cat_meta = record.get_category_meta() %}
 
-    <div class="form-grid form-grid-2">
-      {% macro vital(label, value, unit='', color='primary') %}
-      {% if value %}
-      <div style="padding:var(--sp-4);background:var(--bg-page);border-radius:var(--radius-sm);border:1px solid var(--border);">
-        <div style="font-size:var(--text-xs);color:var(--text-mid);font-weight:600;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;">{{ label }}</div>
-        <div style="font-size:var(--text-2xl);font-weight:700;color:var(--text-dark);">{{ value }}<span style="font-size:var(--text-sm);color:var(--text-mid);margin-left:4px;">{{ unit }}</span></div>
-      </div>
-      {% endif %}
-      {% endmacro %}
-
-      {{ vital('Heart Rate', record.heart_rate, 'bpm') }}
-      {{ vital('Blood Pressure', (record.systolic_bp ~ '/' ~ record.diastolic_bp) if record.systolic_bp, 'mmHg') }}
-      {{ vital('Blood Sugar', record.glucose_level, 'mg/dL') }}
-      {{ vital('Temperature', record.temperature, '°C') }}
-      {{ vital('Weight', record.weight, 'kg') }}
-      {{ vital('Height', record.height, 'cm') }}
-      {{ vital('BMI', record.bmi) }}
-      {{ vital('Oxygen Sat.', record.oxygen_saturation, '%') }}
-    </div>
-
-    {% if record.notes %}
-    <div style="margin-top:var(--sp-5);padding:var(--sp-4);background:var(--bg-page);border-radius:var(--radius-sm);border:1px solid var(--border);">
-      <div style="font-size:var(--text-xs);color:var(--text-mid);font-weight:600;text-transform:uppercase;margin-bottom:var(--sp-2);">Notes</div>
-      <p style="font-size:var(--text-sm);">{{ record.notes }}</p>
-    </div>
-    {% endif %}
+{# ── Back + Actions bar ─────────────────────────────────────── #}
+<div class="record-actions-bar" style="display:flex;align-items:center;gap:var(--sp-3);margin-bottom:var(--sp-5);">
+  <a href="{{ url_for('health.index') }}" class="btn btn-ghost btn-sm">
+    <svg data-lucide="arrow-left"></svg> Back to Records
+  </a>
+  <div style="margin-left:auto;display:flex;gap:var(--sp-2);">
+    <a href="{{ url_for('health.edit_record', id=record.id) }}" class="btn btn-ghost btn-sm">
+      <svg data-lucide="pencil"></svg> Edit
+    </a>
+    <a href="{{ url_for('health.export_record', id=record.id) }}" class="btn btn-ghost btn-sm">
+      <svg data-lucide="download"></svg> Export
+    </a>
+    <button onclick="window.print()" class="btn btn-ghost btn-sm print-record-btn">
+      <svg data-lucide="printer"></svg> Print
+    </button>
+    <form method="POST" action="{{ url_for('health.duplicate_record', id=record.id) }}" style="display:inline;">
+      <button type="submit" class="btn btn-ghost btn-sm" onclick="return confirm('Duplicate this record?')">
+        <svg data-lucide="copy"></svg> Duplicate
+      </button>
+    </form>
   </div>
 </div>
+
+<div class="view-record-layout">
+
+  {# ── Main Content ──────────────────────────────────────────── #}
+  <div>
+    <div class="view-record-hero anim-fade-up">
+      {# Header #}
+      <div class="view-record-hero-header">
+        <div class="view-record-hero-title">
+          <div class="view-record-cat-icon"
+               style="background:{{ cat_meta.bg }};color:{{ cat_meta.color }};">
+            <svg data-lucide="{{ cat_meta.icon }}"></svg>
+          </div>
+          <div>
+            <div class="view-record-name">{{ record.get_display_title() }}</div>
+            <div class="view-record-sub">
+              {{ cat_meta.label }}
+              {% if record.record_type != record.get_display_title().lower().replace(' ','_') %}
+              · {{ record.record_type | replace('_',' ') | title }}
+              {% endif %}
+            </div>
+          </div>
+        </div>
+
+        <div class="view-record-badges">
+          {% if record.severity %}
+          <span class="badge {{ record.get_severity_badge() }}
+                {% if record.severity == 'critical' %}severity-critical{% endif %}">
+            <svg data-lucide="alert-circle" style="width:11px;height:11px;"></svg>
+            {{ record.severity | title }}
+          </span>
+          {% endif %}
+          {% if record.status %}
+          <span class="badge {{ record.get_status_badge() }}">
+            {{ record.status | title }}
+          </span>
+          {% endif %}
+          {% if record.is_private %}
+          <span class="badge badge-neutral">
+            <svg data-lucide="lock" style="width:11px;height:11px;"></svg> Private
+          </span>
+          {% endif %}
+          {% if record.attachment_path %}
+          <span class="badge badge-info">
+            <svg data-lucide="paperclip" style="width:11px;height:11px;"></svg> Has Attachment
+          </span>
+          {% endif %}
+        </div>
+      </div>
+
+      {# Body #}
+      <div class="view-record-body">
+
+        {# Primary Result #}
+        {% if record.get_display_value() != '—' %}
+        <div class="view-record-section">
+          <div class="view-record-section-title">Primary Result</div>
+          <div style="font-size:var(--text-3xl);font-weight:800;color:var(--text-dark);line-height:1;">
+            {{ record.get_display_value() }}
+          </div>
+        </div>
+        {% endif %}
+
+        {# Description #}
+        {% if record.description %}
+        <div class="view-record-section">
+          <div class="view-record-section-title">Description</div>
+          <p style="font-size:var(--text-sm);color:var(--text-dark);line-height:1.7;">
+            {{ record.description }}
+          </p>
+        </div>
+        {% endif %}
+
+        {# Record Details Grid #}
+        <div class="view-record-section">
+          <div class="view-record-section-title">Details</div>
+          <div class="view-record-grid">
+            <div class="view-record-field">
+              <div class="view-record-field-label">Record Date</div>
+              <div class="view-record-field-value">
+                {{ record.record_date.strftime('%B %d, %Y') }}<br>
+                <span style="font-size:var(--text-xs);color:var(--text-mid);">
+                  {{ record.record_date.strftime('%I:%M %p') }}
+                </span>
+              </div>
+            </div>
+            {% if record.follow_up_date %}
+            <div class="view-record-field">
+              <div class="view-record-field-label">Follow-up Date</div>
+              <div class="view-record-field-value" style="color:var(--warning);">
+                {{ record.follow_up_date.strftime('%B %d, %Y') }}
+              </div>
+            </div>
+            {% endif %}
+            {% if record.doctor_name %}
+            <div class="view-record-field">
+              <div class="view-record-field-label">Doctor</div>
+              <div class="view-record-field-value">{{ record.doctor_name }}</div>
+            </div>
+            {% endif %}
+            {% if record.hospital_name %}
+            <div class="view-record-field">
+              <div class="view-record-field-label">Hospital / Clinic</div>
+              <div class="view-record-field-value">{{ record.hospital_name }}</div>
+            </div>
+            {% endif %}
+            <div class="view-record-field">
+              <div class="view-record-field-label">Category</div>
+              <div class="view-record-field-value" style="color:{{ cat_meta.color }};">
+                {{ cat_meta.label }}
+              </div>
+            </div>
+            <div class="view-record-field">
+              <div class="view-record-field-label">Added On</div>
+              <div class="view-record-field-value">
+                {{ record.created_at.strftime('%b %d, %Y') if record.created_at else '—' }}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {# Vital Readings (legacy fields) #}
+        {% set has_vitals = record.systolic_bp or record.heart_rate or record.glucose_level or record.weight or record.temperature or record.oxygen_saturation or record.bmi %}
+        {% if has_vitals %}
+        <div class="view-record-section">
+          <div class="view-record-section-title">Vital Readings</div>
+          <div class="view-record-vitals-grid">
+            {% if record.systolic_bp %}
+            <div class="vital-reading-card">
+              <div class="vital-reading-value">{{ record.systolic_bp }}/{{ record.diastolic_bp }}</div>
+              <div class="vital-reading-unit">mmHg</div>
+              <div class="vital-reading-label">Blood Pressure</div>
+            </div>
+            {% endif %}
+            {% if record.heart_rate %}
+            <div class="vital-reading-card">
+              <div class="vital-reading-value">{{ record.heart_rate }}</div>
+              <div class="vital-reading-unit">bpm</div>
+              <div class="vital-reading-label">Heart Rate</div>
+            </div>
+            {% endif %}
+            {% if record.glucose_level %}
+            <div class="vital-reading-card">
+              <div class="vital-reading-value">{{ record.glucose_level | round(1) }}</div>
+              <div class="vital-reading-unit">mg/dL</div>
+              <div class="vital-reading-label">Blood Sugar</div>
+            </div>
+            {% endif %}
+            {% if record.weight %}
+            <div class="vital-reading-card">
+              <div class="vital-reading-value">{{ record.weight }}</div>
+              <div class="vital-reading-unit">kg</div>
+              <div class="vital-reading-label">Weight</div>
+            </div>
+            {% endif %}
+            {% if record.bmi %}
+            <div class="vital-reading-card">
+              <div class="vital-reading-value">{{ record.bmi | round(1) }}</div>
+              <div class="vital-reading-unit">kg/m²</div>
+              <div class="vital-reading-label">BMI</div>
+            </div>
+            {% endif %}
+            {% if record.temperature %}
+            <div class="vital-reading-card">
+              <div class="vital-reading-value">{{ record.temperature }}</div>
+              <div class="vital-reading-unit">°C</div>
+              <div class="vital-reading-label">Temperature</div>
+            </div>
+            {% endif %}
+            {% if record.oxygen_saturation %}
+            <div class="vital-reading-card">
+              <div class="vital-reading-value">{{ record.oxygen_saturation }}</div>
+              <div class="vital-reading-unit">%</div>
+              <div class="vital-reading-label">O₂ Saturation</div>
+            </div>
+            {% endif %}
+          </div>
+        </div>
+        {% endif %}
+
+        {# Notes #}
+        {% if record.notes %}
+        <div class="view-record-section">
+          <div class="view-record-section-title">Notes</div>
+          <div style="background:var(--bg-page);border-radius:var(--radius-sm);padding:var(--sp-4);font-size:var(--text-sm);color:var(--text-dark);line-height:1.7;white-space:pre-wrap;">{{ record.notes }}</div>
+        </div>
+        {% endif %}
+
+        {# Tags #}
+        {% if record.get_tags_list() %}
+        <div class="view-record-section">
+          <div class="view-record-section-title">Tags</div>
+          <div class="tag-list">
+            {% for tag in record.get_tags_list() %}
+            <span class="tag-chip" style="font-size:var(--text-xs);padding:4px 12px;">{{ tag }}</span>
+            {% endfor %}
+          </div>
+        </div>
+        {% endif %}
+
+        {# Attachment #}
+        {% if record.attachment_path %}
+        <div class="view-record-section">
+          <div class="view-record-section-title">Attachment</div>
+          <div class="attachment-preview-card">
+            <svg data-lucide="file-text"></svg>
+            <div class="attachment-preview-info">
+              <div class="attachment-preview-name">{{ record.attachment_name or 'Attached File' }}</div>
+              <div class="attachment-preview-meta">Click download to access the file</div>
+            </div>
+            <a href="{{ url_for('health.download_attachment', id=record.id) }}"
+               class="btn btn-primary btn-sm">
+              <svg data-lucide="download"></svg> Download
+            </a>
+          </div>
+        </div>
+        {% endif %}
+
+      </div>
+    </div>
+  </div>
+
+  {# ── Sidebar ───────────────────────────────────────────────── #}
+  <div>
+
+    {# Quick Actions #}
+    <div class="card card-padded anim-fade-up" style="margin-bottom:var(--sp-4);">
+      <div class="card__title" style="margin-bottom:var(--sp-4);">Quick Actions</div>
+      <div style="display:flex;flex-direction:column;gap:var(--sp-2);">
+        <a href="{{ url_for('health.edit_record', id=record.id) }}" class="btn btn-primary w-full">
+          <svg data-lucide="pencil"></svg> Edit Record
+        </a>
+        <a href="{{ url_for('health.export_record', id=record.id) }}" class="btn btn-ghost w-full">
+          <svg data-lucide="download"></svg> Export as Text
+        </a>
+        {% if record.attachment_path %}
+        <a href="{{ url_for('health.download_attachment', id=record.id) }}" class="btn btn-ghost w-full">
+          <svg data-lucide="paperclip"></svg> Download File
+        </a>
+        {% endif %}
+        <a href="{{ url_for('health.index') }}" class="btn btn-ghost w-full">
+          <svg data-lucide="list"></svg> All Records
+        </a>
+      </div>
+    </div>
+
+    {# Record Meta #}
+    <div class="card card-padded anim-fade-up anim-delay-2" style="margin-bottom:var(--sp-4);">
+      <div class="card__title" style="margin-bottom:var(--sp-4);">Record Info</div>
+      {% macro meta_row(label, value) %}
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;padding:var(--sp-2) 0;border-bottom:1px solid var(--border);gap:var(--sp-2);">
+        <span style="font-size:var(--text-xs);color:var(--text-mid);font-weight:500;flex-shrink:0;">{{ label }}</span>
+        <span style="font-size:var(--text-xs);font-weight:600;text-align:right;">{{ value }}</span>
+      </div>
+      {% endmacro %}
+      {{ meta_row('Record ID', '#' ~ record.id) }}
+      {{ meta_row('Type', record.record_type | replace('_',' ') | title) }}
+      {{ meta_row('Category', cat_meta.label) }}
+      {{ meta_row('Severity', record.severity | title if record.severity else '—') }}
+      {{ meta_row('Status', record.status | title if record.status else '—') }}
+      {{ meta_row('Privacy', 'Private' if record.is_private else 'Normal') }}
+      {{ meta_row('Created', record.created_at.strftime('%b %d, %Y') if record.created_at else '—') }}
+      {{ meta_row('Updated', record.updated_at.strftime('%b %d, %Y') if record.updated_at else '—') }}
+    </div>
+
+    {# Danger zone #}
+    <div class="card card-padded anim-fade-up anim-delay-3"
+         style="border-color:var(--danger-light);">
+      <div class="card__title" style="color:var(--danger);margin-bottom:var(--sp-3);">Danger Zone</div>
+      <p style="font-size:var(--text-xs);color:var(--text-mid);margin-bottom:var(--sp-3);">
+        Permanently delete this health record. This cannot be undone.
+      </p>
+      <button type="button" class="btn btn-ghost w-full delete-record-btn"
+              style="color:var(--danger);border-color:var(--danger-light);"
+              data-id="{{ record.id }}" data-name="{{ record.get_display_title() }}"
+              onclick="if(confirm('Permanently delete this record?')) { fetch('/health/delete/{{ record.id }}', {method:'POST'}).then(()=>window.location='/health'); }">
+        <svg data-lucide="trash-2"></svg> Delete Record
+      </button>
+    </div>
+
+  </div>
+</div>
+{% endblock %}
+
+{% block page_js %}
+<script src="{{ url_for('static', filename='js/health.js') }}"></script>
 {% endblock %}

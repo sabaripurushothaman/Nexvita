@@ -1,0 +1,146 @@
+{% extends "base.html" %}
+{% block title %}Health Charts – NexVita{% endblock %}
+{% block page_title %}Health Trends{% endblock %}
+{% block page_subtitle %}Visual analytics of your health data over time{% endblock %}
+
+{% block page_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/pages/health.css') }}" />
+{% endblock %}
+
+{% block content %}
+
+{# ── Toolbar ────────────────────────────────────────────────── #}
+<div style="display:flex;align-items:center;gap:var(--sp-3);margin-bottom:var(--sp-6);">
+  <a href="{{ url_for('health.index') }}" class="btn btn-ghost btn-sm">
+    <svg data-lucide="arrow-left"></svg> Back to Records
+  </a>
+  <div style="margin-left:auto;display:flex;gap:var(--sp-2);">
+    <select id="chartRange" class="health-filter-select" onchange="updateChartRange(this.value)">
+      <option value="10">Last 10 entries</option>
+      <option value="20">Last 20 entries</option>
+      <option value="30" selected>Last 30 entries</option>
+      <option value="50">Last 50 entries</option>
+    </select>
+  </div>
+</div>
+
+{# ── Charts Grid ────────────────────────────────────────────── #}
+<div class="charts-grid">
+
+  {# Blood Pressure #}
+  <div class="chart-card anim-fade-up anim-delay-1">
+    <div class="chart-card-header">
+      <div class="chart-card-title" style="color:var(--danger);">
+        <svg data-lucide="activity"></svg> Blood Pressure
+      </div>
+      <span class="badge badge-info" style="font-size:10px;">mmHg</span>
+    </div>
+    <div class="chart-canvas-wrap">
+      <canvas id="bpChart" data-chart="bp"></canvas>
+    </div>
+    <p style="font-size:var(--text-xs);color:var(--text-light);margin-top:var(--sp-2);text-align:center;">
+      Normal: Systolic 90–120 · Diastolic 60–80
+    </p>
+  </div>
+
+  {# Heart Rate #}
+  <div class="chart-card anim-fade-up anim-delay-2">
+    <div class="chart-card-header">
+      <div class="chart-card-title" style="color:var(--warning);">
+        <svg data-lucide="heart-pulse"></svg> Heart Rate
+      </div>
+      <span class="badge badge-warning" style="font-size:10px;">bpm</span>
+    </div>
+    <div class="chart-canvas-wrap">
+      <canvas id="hrChart" data-chart="hr"></canvas>
+    </div>
+    <p style="font-size:var(--text-xs);color:var(--text-light);margin-top:var(--sp-2);text-align:center;">
+      Normal resting: 60–100 bpm
+    </p>
+  </div>
+
+  {# Blood Sugar #}
+  <div class="chart-card anim-fade-up anim-delay-3">
+    <div class="chart-card-header">
+      <div class="chart-card-title" style="color:var(--accent);">
+        <svg data-lucide="droplets"></svg> Blood Sugar
+      </div>
+      <span class="badge" style="background:var(--accent-light);color:var(--accent);font-size:10px;">mg/dL</span>
+    </div>
+    <div class="chart-canvas-wrap">
+      <canvas id="glucoseChart" data-chart="glucose"></canvas>
+    </div>
+    <p style="font-size:var(--text-xs);color:var(--text-light);margin-top:var(--sp-2);text-align:center;">
+      Normal fasting: 70–99 mg/dL
+    </p>
+  </div>
+
+  {# Weight #}
+  <div class="chart-card anim-fade-up anim-delay-4">
+    <div class="chart-card-header">
+      <div class="chart-card-title" style="color:var(--primary);">
+        <svg data-lucide="scale"></svg> Weight Trend
+      </div>
+      <span class="badge badge-success" style="font-size:10px;">kg</span>
+    </div>
+    <div class="chart-canvas-wrap">
+      <canvas id="weightChart" data-chart="weight"></canvas>
+    </div>
+  </div>
+
+  {# BMI #}
+  <div class="chart-card anim-fade-up">
+    <div class="chart-card-header">
+      <div class="chart-card-title" style="color:var(--success);">
+        <svg data-lucide="ruler"></svg> BMI Trend
+      </div>
+      <span class="badge badge-success" style="font-size:10px;">kg/m²</span>
+    </div>
+    <div class="chart-canvas-wrap">
+      <canvas id="bmiChart" data-chart="bmi"></canvas>
+    </div>
+    <p style="font-size:var(--text-xs);color:var(--text-light);margin-top:var(--sp-2);text-align:center;">
+      Normal: 18.5–24.9 · Overweight: 25–29.9 · Obese: ≥30
+    </p>
+  </div>
+
+  {# Temperature #}
+  <div class="chart-card anim-fade-up anim-delay-2">
+    <div class="chart-card-header">
+      <div class="chart-card-title" style="color:#EC4899;">
+        <svg data-lucide="thermometer"></svg> Temperature
+      </div>
+      <span class="badge" style="background:#FCE7F3;color:#EC4899;font-size:10px;">°C</span>
+    </div>
+    <div class="chart-canvas-wrap">
+      <canvas id="tempChart" data-chart="temp"></canvas>
+    </div>
+    <p style="font-size:var(--text-xs);color:var(--text-light);margin-top:var(--sp-2);text-align:center;">
+      Normal: 36.1–37.2 °C
+    </p>
+  </div>
+
+</div>
+
+{# ── No Data Hint ────────────────────────────────────────────── #}
+<div style="text-align:center;margin-top:var(--sp-6);">
+  <p style="font-size:var(--text-sm);color:var(--text-mid);">
+    Charts only display for records that have vital sign readings logged.
+    <a href="{{ url_for('health.index') }}" style="color:var(--primary);font-weight:600;">Add more records →</a>
+  </p>
+</div>
+
+{% endblock %}
+
+{% block page_js %}
+{# Chart.js from CDN #}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="{{ url_for('static', filename='js/health.js') }}"></script>
+<script>
+async function updateChartRange(limit) {
+  // Reload page with limit param — charts reinit from API
+  window.location.search = `?limit=${limit}`;
+}
+// Init charts on load (health.js initCharts() is called from DOMContentLoaded)
+</script>
+{% endblock %}

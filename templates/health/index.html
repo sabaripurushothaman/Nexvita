@@ -1,267 +1,690 @@
 {% extends "base.html" %}
 {% block title %}Health Records – NexVita{% endblock %}
 {% block page_title %}Health Records{% endblock %}
-{% block page_subtitle %}Track and manage your health data{% endblock %}
+{% block page_subtitle %}Your complete medical history in one place{% endblock %}
 
 {% block page_css %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/pages/health.css') }}" />
 {% endblock %}
 
 {% block content %}
-<div class="health-layout">
+{# ── Pass data to JS ────────────────────────────────────────── #}
+<script>
+window.PRESET_TYPES = {{ HEALTH_RECORD_PRESET_TYPES | tojson }};
+window.CATEGORIES   = {{ HEALTH_CATEGORIES | tojson }};
+window.OPEN_MODAL   = {{ 'true' if show_add_modal else 'false' }};
+</script>
 
-  <!-- Add Record Form Panel -->
-  <div class="add-record-panel">
-    <div class="card card-padded">
-      <div class="card__header">
-        <div>
-          <div class="card__title">Add New Record</div>
-          <div class="card__subtitle">Log today's vitals</div>
-        </div>
-        <svg data-lucide="plus-circle" style="width:20px;height:20px;color:var(--primary);"></svg>
-      </div>
+{# ── Stats Row ─────────────────────────────────────────────── #}
+<div class="health-stats-row">
 
-      <form method="POST" action="{{ url_for('health.add_record') }}" id="addRecordForm">
-        <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token is defined else '' }}" />
-
-        <div class="form-group" style="margin-bottom:var(--sp-4);">
-          <label class="form-label">Record Type</label>
-          <select name="record_type" class="form-control" required>
-            <option value="vital">Vital Signs</option>
-            {% for rtype in HEALTH_RECORD_TYPES %}
-            <option value="{{ rtype }}">{{ rtype | capitalize }}</option>
-            {% endfor %}
-          </select>
-        </div>
-
-        <!-- Blood Pressure -->
-        <div class="vital-group" id="bpGroup">
-          <label class="vital-group__label">
-            <div class="vital-icon" style="background:var(--info-light);color:var(--info);">
-              <svg data-lucide="activity" style="width:14px;height:14px;"></svg>
-            </div>
-            Blood Pressure
-            <label class="toggle" style="margin-left:auto;">
-              <input type="checkbox" id="bpToggle" checked />
-              <span class="toggle-track"></span>
-            </label>
-          </label>
-          <div class="form-grid form-grid-2 vital-inputs" id="bpInputs">
-            <div class="form-group">
-              <label class="form-label text-sm">Systolic (mmHg)</label>
-              <input type="number" name="systolic_bp" class="form-control" placeholder="120" min="60" max="250" />
-            </div>
-            <div class="form-group">
-              <label class="form-label text-sm">Diastolic (mmHg)</label>
-              <input type="number" name="diastolic_bp" class="form-control" placeholder="80" min="40" max="150" />
-            </div>
-          </div>
-        </div>
-
-        <!-- Heart Rate -->
-        <div class="vital-group">
-          <label class="vital-group__label">
-            <div class="vital-icon" style="background:var(--danger-light);color:var(--danger);">
-              <svg data-lucide="heart" style="width:14px;height:14px;"></svg>
-            </div>
-            Heart Rate (bpm)
-          </label>
-          <input type="number" name="heart_rate" class="form-control" placeholder="72" min="30" max="250" />
-        </div>
-
-        <!-- Blood Sugar -->
-        <div class="vital-group">
-          <label class="vital-group__label">
-            <div class="vital-icon" style="background:var(--warning-light);color:var(--warning);">
-              <svg data-lucide="droplets" style="width:14px;height:14px;"></svg>
-            </div>
-            Blood Sugar (mg/dL)
-          </label>
-          <input type="number" name="glucose_level" class="form-control" placeholder="98" step="0.1" />
-        </div>
-
-        <!-- Temperature -->
-        <div class="vital-group">
-          <label class="vital-group__label">
-            <div class="vital-icon" style="background:#FCE7F3;color:#EC4899;">
-              <svg data-lucide="thermometer" style="width:14px;height:14px;"></svg>
-            </div>
-            Temperature (°C)
-          </label>
-          <input type="number" name="temperature" class="form-control" placeholder="36.6" step="0.1" />
-        </div>
-
-        <!-- Weight & Height -->
-        <div class="form-grid form-grid-2">
-          <div class="vital-group">
-            <label class="vital-group__label">
-              <div class="vital-icon" style="background:var(--accent-light);color:var(--accent);">
-                <svg data-lucide="scale" style="width:14px;height:14px;"></svg>
-              </div>
-              Weight (kg)
-            </label>
-            <input type="number" name="weight" id="weightInput" class="form-control" placeholder="70" step="0.1" oninput="calcBMI()" />
-          </div>
-          <div class="vital-group">
-            <label class="vital-group__label">
-              <div class="vital-icon" style="background:var(--primary-light);color:var(--primary);">
-                <svg data-lucide="ruler" style="width:14px;height:14px;"></svg>
-              </div>
-              Height (cm)
-            </label>
-            <input type="number" name="height" id="heightInput" class="form-control" placeholder="170" oninput="calcBMI()" />
-          </div>
-        </div>
-
-        <!-- Auto BMI -->
-        <div class="bmi-result" id="bmiResult" style="display:none;">
-          <svg data-lucide="calculator" style="width:14px;height:14px;"></svg>
-          BMI: <strong id="bmiVal">—</strong>
-          <span id="bmiLabel" class="badge badge-success" style="margin-left:8px;"></span>
-          <input type="hidden" name="bmi" id="bmiInput" />
-        </div>
-
-        <!-- Notes -->
-        <div class="form-group" style="margin-top:var(--sp-4);">
-          <label class="form-label">Notes (optional)</label>
-          <textarea name="notes" class="form-control" placeholder="Any observations or symptoms..." style="min-height:80px;"></textarea>
-        </div>
-
-        <button type="submit" class="btn btn-primary w-full" style="margin-top:var(--sp-5);">
-          <svg data-lucide="save"></svg>
-          Save Record
-        </button>
-      </form>
+  <div class="health-stat-card anim-fade-up anim-delay-1">
+    <div class="health-stat-card__icon" style="background:var(--primary-light);color:var(--primary);">
+      <svg data-lucide="clipboard-list"></svg>
+    </div>
+    <div class="health-stat-card__body">
+      <div class="health-stat-card__value" id="recordCountBadge">{{ total }}</div>
+      <div class="health-stat-card__label">Total Records</div>
     </div>
   </div>
 
-  <!-- Records Table -->
-  <div class="records-panel">
-    <div class="card">
-      <div class="card-padded" style="padding-bottom:0;">
-        <div class="card__header">
-          <div>
-            <div class="card__title">Your Records</div>
-            <div class="card__subtitle">{{ records.total if records else 0 }} records total</div>
-          </div>
-          <div class="search-bar" style="max-width:220px;">
-            <svg data-lucide="search"></svg>
-            <input type="text" placeholder="Search..." id="recordSearch" />
-          </div>
+  <div class="health-stat-card anim-fade-up anim-delay-2">
+    <div class="health-stat-card__icon" style="background:var(--danger-light);color:var(--danger);">
+      <svg data-lucide="alert-circle"></svg>
+    </div>
+    <div class="health-stat-card__body">
+      <div class="health-stat-card__value">{{ critical }}</div>
+      <div class="health-stat-card__label">Critical Records</div>
+    </div>
+  </div>
+
+  <div class="health-stat-card anim-fade-up anim-delay-3">
+    <div class="health-stat-card__icon" style="background:var(--warning-light);color:var(--warning);">
+      <svg data-lucide="calendar-clock"></svg>
+    </div>
+    <div class="health-stat-card__body">
+      <div class="health-stat-card__value">{{ follow_ups }}</div>
+      <div class="health-stat-card__label">Upcoming Follow-ups</div>
+    </div>
+  </div>
+
+  <div class="health-stat-card anim-fade-up anim-delay-4">
+    <div class="health-stat-card__icon" style="background:var(--accent-light);color:var(--accent);">
+      <svg data-lucide="bar-chart-2"></svg>
+    </div>
+    <div class="health-stat-card__body">
+      <div class="health-stat-card__value" style="font-size:var(--text-base);font-weight:700;text-transform:capitalize;">
+        {% if most_frequent %}
+          {{ HEALTH_CATEGORIES[most_frequent].label if most_frequent in HEALTH_CATEGORIES else most_frequent | replace('_',' ') | title }}
+        {% else %}—{% endif %}
+      </div>
+      <div class="health-stat-card__label">Top Category</div>
+    </div>
+  </div>
+
+</div>
+
+{# ── Toolbar ────────────────────────────────────────────────── #}
+<form method="GET" action="{{ url_for('health.index') }}" id="filterForm">
+  <div class="health-toolbar">
+    <div class="health-search-wrap">
+      <svg data-lucide="search"></svg>
+      <input type="text" name="q" id="healthSearchInput"
+             value="{{ search_query }}"
+             placeholder="Search records, doctors, tags…" />
+    </div>
+
+    <div class="health-toolbar-filters">
+      <select name="category" class="health-filter-select">
+        <option value="">All Categories</option>
+        {% for key, cat in HEALTH_CATEGORIES.items() %}
+        <option value="{{ key }}" {% if filter_category == key %}selected{% endif %}>
+          {{ cat.label }}
+        </option>
+        {% endfor %}
+      </select>
+
+      <select name="severity" class="health-filter-select">
+        <option value="">Any Severity</option>
+        {% for s in SEVERITY_LEVELS %}
+        <option value="{{ s.value }}" {% if filter_severity == s.value %}selected{% endif %}>
+          {{ s.label }}
+        </option>
+        {% endfor %}
+      </select>
+
+      <select name="status" class="health-filter-select">
+        <option value="">Any Status</option>
+        {% for st in RECORD_STATUS %}
+        <option value="{{ st.value }}" {% if filter_status == st.value %}selected{% endif %}>
+          {{ st.label }}
+        </option>
+        {% endfor %}
+      </select>
+
+      <input type="date" name="date_from" class="health-date-input"
+             value="{{ filter_date_from }}" title="From date" />
+      <input type="date" name="date_to" class="health-date-input"
+             value="{{ filter_date_to }}" title="To date" />
+
+      {% if search_query or filter_category or filter_severity or filter_status or filter_date_from or filter_date_to %}
+      <a href="{{ url_for('health.index') }}" class="filter-clear-btn">
+        <svg data-lucide="x"></svg> Clear
+      </a>
+      {% endif %}
+    </div>
+
+    <div class="health-toolbar-right">
+      <div class="view-toggle">
+        <button type="button" class="view-toggle-btn {% if view != 'timeline' %}active{% endif %}" data-view="table">
+          <svg data-lucide="table-2"></svg> Table
+        </button>
+        <button type="button" class="view-toggle-btn {% if view == 'timeline' %}active{% endif %}" data-view="timeline">
+          <svg data-lucide="git-branch"></svg> Timeline
+        </button>
+      </div>
+
+      <button type="button" class="btn btn-primary" data-open-modal="add" id="addRecordBtn">
+        <svg data-lucide="plus"></svg> Add Record
+      </button>
+
+      <a href="{{ url_for('health.charts') }}" class="btn btn-ghost">
+        <svg data-lucide="line-chart"></svg>
+      </a>
+    </div>
+  </div>
+</form>
+
+{# ── Category Pill Navigation ──────────────────────────────── #}
+<div class="category-nav" role="navigation" aria-label="Filter by category">
+  <a href="{{ url_for('health.index') }}"
+     class="category-pill {% if not filter_category %}active{% endif %}">
+    All
+  </a>
+  {% for key, cat in HEALTH_CATEGORIES.items() %}
+  {% if category_counts.get(key, 0) > 0 %}
+  <a href="{{ url_for('health.index', category=key) }}"
+     class="category-pill {% if filter_category == key %}active{% endif %}"
+     style="{% if filter_category == key %}background:{{ cat.color }};border-color:{{ cat.color }};color:white;{% endif %}">
+    <svg data-lucide="{{ cat.icon }}"></svg>
+    {{ cat.label }}
+    <span style="opacity:.7;font-size:10px;">({{ category_counts.get(key, 0) }})</span>
+  </a>
+  {% endif %}
+  {% endfor %}
+</div>
+
+{# ── TABLE VIEW ────────────────────────────────────────────── #}
+<div id="tableView" {% if view == 'timeline' %}style="display:none;"{% endif %}>
+  {% if records and records.items %}
+  <div class="health-table-card anim-fade-up">
+    <div class="health-table-header">
+      <div>
+        <h3>All Records</h3>
+        <div class="health-table-header-meta">
+          Showing {{ records.items | length }} of {{ records.total }} records
         </div>
       </div>
+      <a href="{{ url_for('health.timeline') }}" class="btn btn-ghost btn-sm">
+        <svg data-lucide="git-branch"></svg> Full Timeline
+      </a>
+    </div>
 
-      {% if records and records.items %}
-      <div class="table-wrapper" style="border:none;border-radius:0;">
-        <table class="table">
-          <thead>
-            <tr>
-              <th>Date</th>
-              <th>Heart Rate</th>
-              <th>Blood Pressure</th>
-              <th>Blood Sugar</th>
-              <th>Weight</th>
-              <th>BMI</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody id="recordsTableBody">
-            {% for record in records.items %}
-            <tr>
-              <td>
-                <div style="font-weight:500;">{{ record.record_date.strftime('%b %d, %Y') }}</div>
-                <div style="font-size:var(--text-xs);color:var(--text-mid);">{{ record.record_date.strftime('%I:%M %p') }}</div>
-              </td>
-              <td>
-                {% if record.heart_rate %}
-                  <span class="badge badge-danger">{{ record.heart_rate }} bpm</span>
-                {% else %}<span class="text-muted">—</span>{% endif %}
-              </td>
-              <td>
-                {% if record.systolic_bp %}
-                  <span class="badge badge-info">{{ record.systolic_bp }}/{{ record.diastolic_bp }}</span>
-                {% else %}<span class="text-muted">—</span>{% endif %}
-              </td>
-              <td>{{ record.glucose_level | round(1) if record.glucose_level else '—' }}</td>
-              <td>{{ record.weight if record.weight else '—' }}</td>
-              <td>
-                {% if record.bmi %}
-                  <span class="badge {% if record.bmi < 18.5 %}badge-warning{% elif record.bmi < 25 %}badge-success{% elif record.bmi < 30 %}badge-warning{% else %}badge-danger{% endif %}">
-                    {{ record.bmi | round(1) }}
-                  </span>
-                {% else %}<span class="text-muted">—</span>{% endif %}
-              </td>
-              <td>
-                <div class="table-actions">
-                  <a href="{{ url_for('health.view_record', id=record.id) }}" class="btn btn-ghost btn-icon btn-sm" title="View">
-                    <svg data-lucide="eye" style="width:14px;height:14px;"></svg>
-                  </a>
-                  <a href="{{ url_for('health.edit_record', id=record.id) }}" class="btn btn-ghost btn-icon btn-sm" title="Edit">
-                    <svg data-lucide="pencil" style="width:14px;height:14px;"></svg>
-                  </a>
-                  <form method="POST" action="{{ url_for('health.delete_record', id=record.id) }}" style="display:inline;" onsubmit="return confirm('Delete this record?')">
-                    <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token is defined else '' }}" />
-                    <button type="submit" class="btn btn-ghost btn-icon btn-sm" title="Delete" style="color:var(--danger);">
-                      <svg data-lucide="trash-2" style="width:14px;height:14px;"></svg>
-                    </button>
-                  </form>
+    <div class="health-table-wrap">
+      <table class="health-table">
+        <thead>
+          <tr>
+            <th data-sort="0">Record <span class="sort-icon">↕</span></th>
+            <th data-sort="1">Category <span class="sort-icon">↕</span></th>
+            <th data-sort="2">Value / Result <span class="sort-icon">↕</span></th>
+            <th data-sort="3">Severity <span class="sort-icon">↕</span></th>
+            <th data-sort="4">Date <span class="sort-icon">↕</span></th>
+            <th data-sort="5">Doctor / Hospital</th>
+            <th data-sort="6">Status <span class="sort-icon">↕</span></th>
+            <th style="text-align:right;">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for record in records.items %}
+          {% set cat_meta = record.get_category_meta() %}
+          <tr>
+            {# Record name + tags #}
+            <td>
+              <div class="record-type-cell">
+                <div class="record-type-icon"
+                     style="background:{{ cat_meta.bg }};color:{{ cat_meta.color }};">
+                  <svg data-lucide="{{ cat_meta.icon }}"></svg>
                 </div>
-              </td>
-            </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-      </div>
+                <div>
+                  <div class="record-type-name">{{ record.get_display_title() }}</div>
+                  {% if record.get_tags_list() %}
+                  <div class="tag-list mt-1">
+                    {% for tag in record.get_tags_list()[:3] %}
+                    <span class="tag-chip">{{ tag }}</span>
+                    {% endfor %}
+                  </div>
+                  {% endif %}
+                </div>
+              </div>
+            </td>
 
-      <!-- Pagination -->
-      {% if records.pages > 1 %}
-      <div class="pagination" style="padding:var(--sp-4);">
+            {# Category #}
+            <td>
+              <span style="font-size:var(--text-xs);font-weight:600;color:{{ cat_meta.color }};">
+                {{ cat_meta.label }}
+              </span>
+            </td>
+
+            {# Value #}
+            <td class="record-value-cell">{{ record.get_display_value() }}</td>
+
+            {# Severity #}
+            <td>
+              {% if record.severity %}
+              <span class="badge {{ record.get_severity_badge() }}
+                    {% if record.severity == 'critical' %}severity-critical{% endif %}">
+                {{ record.severity | title }}
+              </span>
+              {% else %}<span class="text-muted">—</span>{% endif %}
+            </td>
+
+            {# Date #}
+            <td>
+              <div style="font-weight:500;font-size:var(--text-sm);">
+                {{ record.record_date.strftime('%b %d, %Y') }}
+              </div>
+              {% if record.follow_up_date %}
+              <div style="font-size:var(--text-xs);color:var(--warning);">
+                <svg data-lucide="calendar" style="width:10px;height:10px;"></svg>
+                FU: {{ record.follow_up_date.strftime('%b %d') }}
+              </div>
+              {% endif %}
+            </td>
+
+            {# Doctor / Hospital #}
+            <td>
+              {% if record.doctor_name %}
+              <div style="font-size:var(--text-xs);font-weight:600;">
+                {{ record.doctor_name | truncate(20) }}
+              </div>
+              {% endif %}
+              {% if record.hospital_name %}
+              <div style="font-size:var(--text-xs);color:var(--text-mid);">
+                {{ record.hospital_name | truncate(20) }}
+              </div>
+              {% endif %}
+              {% if not record.doctor_name and not record.hospital_name %}
+              <span class="text-muted">—</span>
+              {% endif %}
+            </td>
+
+            {# Status #}
+            <td>
+              {% if record.status %}
+              <span class="badge {{ record.get_status_badge() }}" style="font-size:10px;">
+                {{ record.status | title }}
+              </span>
+              {% else %}<span class="text-muted">—</span>{% endif %}
+            </td>
+
+            {# Actions #}
+            <td>
+              <div class="record-actions">
+                <a href="{{ url_for('health.view_record', id=record.id) }}"
+                   class="record-action-btn primary" title="View">
+                  <svg data-lucide="eye"></svg>
+                </a>
+                <button type="button"
+                        class="record-action-btn primary edit-record-btn"
+                        title="Edit"
+                        data-record="{{ record.to_dict() | tojson | forceescape }}">
+                  <svg data-lucide="pencil"></svg>
+                </button>
+                <button type="button"
+                        class="record-action-btn duplicate-record-btn"
+                        title="Duplicate"
+                        data-id="{{ record.id }}">
+                  <svg data-lucide="copy"></svg>
+                </button>
+                <a href="{{ url_for('health.export_record', id=record.id) }}"
+                   class="record-action-btn" title="Export">
+                  <svg data-lucide="download"></svg>
+                </a>
+                {% if record.attachment_path %}
+                <a href="{{ url_for('health.download_attachment', id=record.id) }}"
+                   class="record-action-btn primary" title="Download Attachment">
+                  <svg data-lucide="paperclip"></svg>
+                </a>
+                {% endif %}
+                <button type="button"
+                        class="record-action-btn danger delete-record-btn"
+                        title="Delete"
+                        data-id="{{ record.id }}"
+                        data-name="{{ record.get_display_title() }}">
+                  <svg data-lucide="trash-2"></svg>
+                </button>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    {# Pagination #}
+    {% if records.pages > 1 %}
+    <div class="health-pagination">
+      <div class="health-pagination-info">
+        Page {{ records.page }} of {{ records.pages }}
+      </div>
+      <div class="health-pagination-btns">
         {% if records.has_prev %}
-        <a href="{{ url_for('health.index', page=records.prev_num) }}" class="page-btn">
+        <a href="{{ url_for('health.index', page=records.prev_num, q=search_query, category=filter_category, severity=filter_severity, status=filter_status) }}"
+           class="health-page-btn">
           <svg data-lucide="chevron-left" style="width:14px;height:14px;"></svg>
         </a>
         {% endif %}
         {% for p in records.iter_pages() %}
           {% if p %}
-          <a href="{{ url_for('health.index', page=p) }}" class="page-btn {% if p == records.page %}active{% endif %}">{{ p }}</a>
+          <a href="{{ url_for('health.index', page=p, q=search_query, category=filter_category, severity=filter_severity, status=filter_status) }}"
+             class="health-page-btn {% if p == records.page %}active{% endif %}">{{ p }}</a>
+          {% else %}
+          <span class="health-page-btn disabled">…</span>
           {% endif %}
         {% endfor %}
         {% if records.has_next %}
-        <a href="{{ url_for('health.index', page=records.next_num) }}" class="page-btn">
+        <a href="{{ url_for('health.index', page=records.next_num, q=search_query, category=filter_category, severity=filter_severity, status=filter_status) }}"
+           class="health-page-btn">
           <svg data-lucide="chevron-right" style="width:14px;height:14px;"></svg>
         </a>
         {% endif %}
       </div>
-      {% endif %}
+    </div>
+    {% endif %}
+  </div>
 
-      {% else %}
-      <div class="empty-state">
-        <svg data-lucide="clipboard-list"></svg>
-        <h3>No records yet</h3>
-        <p>Start tracking your health by adding your first record.</p>
-      </div>
-      {% endif %}
+  {% else %}
+  {# Empty state #}
+  <div class="health-table-card">
+    <div class="health-empty">
+      <svg data-lucide="clipboard-x"></svg>
+      <h3>No records found</h3>
+      <p>
+        {% if search_query or filter_category or filter_severity or filter_status %}
+        No records match your current filters.
+        <a href="{{ url_for('health.index') }}" style="color:var(--primary);">Clear filters</a>
+        {% else %}
+        Start tracking your health by adding your first record.
+        {% endif %}
+      </p>
+      <button type="button" class="btn btn-primary" data-open-modal="add">
+        <svg data-lucide="plus"></svg> Add First Record
+      </button>
     </div>
   </div>
+  {% endif %}
 </div>
+
+{# ── TIMELINE VIEW ──────────────────────────────────────────── #}
+<div id="timelineView" {% if view != 'timeline' %}style="display:none;"{% endif %}>
+  {% if records and records.items %}
+  <div class="health-timeline">
+    {% set current_month = namespace(val='') %}
+    {% for record in records.items %}
+    {% set month_key = record.record_date.strftime('%B %Y') %}
+    {% if month_key != current_month.val %}
+    {% if not loop.first %}</div></div>{% endif %}
+    <div class="timeline-month-group">
+      <div class="timeline-month-label"><h4>{{ month_key }}</h4></div>
+      <div class="timeline-entries">
+    {% set current_month.val = month_key %}
+    {% endif %}
+
+    {% set cat_meta = record.get_category_meta() %}
+    <div class="timeline-entry" data-id="{{ record.id }}">
+      <div class="timeline-dot severity-{{ record.severity or 'normal' }}"></div>
+      <div class="timeline-card" onclick="window.location='{{ url_for('health.view_record', id=record.id) }}'">
+        <div class="timeline-card-top">
+          <div class="timeline-card-title">
+            <div class="record-type-icon" style="background:{{ cat_meta.bg }};color:{{ cat_meta.color }};width:30px;height:30px;">
+              <svg data-lucide="{{ cat_meta.icon }}" style="width:14px;height:14px;"></svg>
+            </div>
+            <div>
+              <div class="timeline-card-name">{{ record.get_display_title() }}</div>
+              <div class="record-type-sub">{{ cat_meta.label }}</div>
+            </div>
+          </div>
+          <div style="display:flex;align-items:center;gap:var(--sp-2);flex-shrink:0;">
+            {% if record.severity %}
+            <span class="badge {{ record.get_severity_badge() }}" style="font-size:10px;">{{ record.severity | title }}</span>
+            {% endif %}
+            <span class="timeline-card-date">{{ record.record_date.strftime('%b %d, %I:%M %p') }}</span>
+          </div>
+        </div>
+        <div class="timeline-card-value">{{ record.get_display_value() }}</div>
+        {% if record.description %}
+        <div style="font-size:var(--text-xs);color:var(--text-mid);margin-top:var(--sp-2);">
+          {{ record.description | truncate(120) }}
+        </div>
+        {% endif %}
+        <div class="timeline-card-meta">
+          {% if record.doctor_name %}
+          <div class="timeline-card-meta-item">
+            <svg data-lucide="user-round"></svg> {{ record.doctor_name }}
+          </div>
+          {% endif %}
+          {% if record.hospital_name %}
+          <div class="timeline-card-meta-item">
+            <svg data-lucide="building-2"></svg> {{ record.hospital_name }}
+          </div>
+          {% endif %}
+          {% if record.follow_up_date %}
+          <div class="timeline-card-meta-item" style="color:var(--warning);">
+            <svg data-lucide="calendar-clock"></svg>
+            Follow-up: {{ record.follow_up_date.strftime('%b %d, %Y') }}
+          </div>
+          {% endif %}
+          {% if record.get_tags_list() %}
+          <div class="timeline-card-meta-item">
+            {% for tag in record.get_tags_list()[:3] %}<span class="tag-chip">{{ tag }}</span>{% endfor %}
+          </div>
+          {% endif %}
+        </div>
+        <div class="timeline-card-actions" style="margin-top:var(--sp-3);" onclick="event.stopPropagation();">
+          <a href="{{ url_for('health.view_record', id=record.id) }}" class="record-action-btn primary" title="View">
+            <svg data-lucide="eye"></svg>
+          </a>
+          <button type="button" class="record-action-btn primary edit-record-btn" title="Edit"
+                  data-record="{{ record.to_dict() | tojson | forceescape }}">
+            <svg data-lucide="pencil"></svg>
+          </button>
+          <button type="button" class="record-action-btn danger delete-record-btn" title="Delete"
+                  data-id="{{ record.id }}" data-name="{{ record.get_display_title() }}">
+            <svg data-lucide="trash-2"></svg>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    {% if loop.last %}</div></div>{% endif %}
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="health-table-card">
+    <div class="health-empty">
+      <svg data-lucide="git-branch"></svg>
+      <h3>No records for timeline</h3>
+      <p>Add your first health record to see it in the timeline view.</p>
+      <button type="button" class="btn btn-primary" data-open-modal="add">
+        <svg data-lucide="plus"></svg> Add Record
+      </button>
+    </div>
+  </div>
+  {% endif %}
+</div>
+
+
+{# ══ ADD / EDIT MODAL ════════════════════════════════════════ #}
+<div id="healthModalOverlay" class="health-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+  <div class="health-modal">
+
+    <div class="health-modal-header">
+      <h2>
+        <svg data-lucide="plus-circle"></svg>
+        <span id="modalTitle">Add Health Record</span>
+      </h2>
+      <button type="button" class="health-modal-close" onclick="closeModal()" aria-label="Close">
+        <svg data-lucide="x"></svg>
+      </button>
+    </div>
+
+    <div class="health-modal-body">
+      <form id="healthRecordForm" method="POST" action="{{ url_for('health.add_record') }}"
+            enctype="multipart/form-data">
+
+        {# ── Quick Preset Types ─────────────────────────────── #}
+        <div class="form-section-label">
+          <svg data-lucide="zap"></svg> Quick Select Type
+        </div>
+        <div class="preset-types-grid">
+          {% for pt in HEALTH_RECORD_PRESET_TYPES %}
+          {% set cat_info = HEALTH_CATEGORIES.get(pt.category, HEALTH_CATEGORIES.custom) %}
+          <button type="button" class="preset-type-btn"
+                  data-value="{{ pt.value }}"
+                  data-category="{{ pt.category }}">
+            <svg data-lucide="{{ cat_info.icon }}" style="color:{{ cat_info.color }};"></svg>
+            {{ pt.label }}
+          </button>
+          {% endfor %}
+        </div>
+
+        {# Hidden type/category fields (populated by preset buttons or manually) #}
+        <input type="hidden" name="record_type" id="recordTypeHidden" value="custom" />
+        <input type="hidden" name="category"    id="categoryHidden"    value="custom" />
+
+        {# ── Core Details ──────────────────────────────────── #}
+        <div class="form-section-label">
+          <svg data-lucide="file-text"></svg> Record Details
+        </div>
+        <div class="modal-form-grid">
+          <div class="form-group modal-form-full">
+            <label class="form-label">Record Title *</label>
+            <input type="text" name="title" class="form-control"
+                   placeholder="e.g. Annual Blood Pressure Check" required />
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Record Date</label>
+            <input type="datetime-local" name="record_date" class="form-control"
+                   value="{{ '' }}" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Follow-up Date</label>
+            <input type="datetime-local" name="follow_up_date" class="form-control" />
+          </div>
+        </div>
+
+        <div class="form-group" style="margin-bottom:var(--sp-4);">
+          <label class="form-label">Description</label>
+          <textarea name="description" class="form-control"
+                    placeholder="Brief description of this record…"
+                    style="min-height:72px;resize:vertical;"></textarea>
+        </div>
+
+        {# ── Result / Value ─────────────────────────────────── #}
+        <div class="form-section-label">
+          <svg data-lucide="thermometer"></svg> Measurement / Result
+        </div>
+        <div class="modal-form-grid cols-3">
+          <div class="form-group">
+            <label class="form-label">Result / Value</label>
+            <input type="text" name="result_value" class="form-control"
+                   placeholder="e.g. 120/80, Positive, 7.4" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Unit</label>
+            <input type="text" name="result_unit" class="form-control"
+                   placeholder="mmHg, mg/dL, %, °C…" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Severity</label>
+            <select name="severity" class="form-control">
+              {% for s in SEVERITY_LEVELS %}
+              <option value="{{ s.value }}">{{ s.label }}</option>
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+
+        {# ── Vital Signs (legacy + new) ─────────────────────── #}
+        <div class="form-section-label">
+          <svg data-lucide="activity"></svg> Vital Signs (optional)
+        </div>
+        <div class="modal-form-grid">
+          <div class="form-group">
+            <label class="form-label">Systolic BP (mmHg)</label>
+            <input type="number" name="systolic_bp" class="form-control" placeholder="120" min="60" max="250" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Diastolic BP (mmHg)</label>
+            <input type="number" name="diastolic_bp" class="form-control" placeholder="80" min="40" max="150" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Heart Rate (bpm)</label>
+            <input type="number" name="heart_rate" class="form-control" placeholder="72" min="30" max="250" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Blood Sugar (mg/dL)</label>
+            <input type="number" name="glucose_level" class="form-control" placeholder="98" step="0.1" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Temperature (°C)</label>
+            <input type="number" name="temperature" class="form-control" placeholder="36.6" step="0.1" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">O₂ Saturation (%)</label>
+            <input type="number" name="oxygen_saturation" class="form-control" placeholder="98" step="0.1" min="0" max="100" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Weight (kg)</label>
+            <input type="number" id="weightInput" name="weight" class="form-control"
+                   placeholder="70" step="0.1" oninput="calcBMI()" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Height (cm)</label>
+            <input type="number" id="heightInput" name="height" class="form-control"
+                   placeholder="170" oninput="calcBMI()" />
+          </div>
+        </div>
+        <div id="bmiDisplay" class="bmi-badge" style="display:none;margin-bottom:var(--sp-4);"></div>
+
+        {# ── Healthcare Provider ────────────────────────────── #}
+        <div class="form-section-label">
+          <svg data-lucide="stethoscope"></svg> Healthcare Provider
+        </div>
+        <div class="modal-form-grid">
+          <div class="form-group">
+            <label class="form-label">Doctor Name</label>
+            <input type="text" name="doctor_name" class="form-control"
+                   placeholder="Dr. Jane Smith" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Hospital / Clinic</label>
+            <input type="text" name="hospital_name" class="form-control"
+                   placeholder="City General Hospital" />
+          </div>
+        </div>
+
+        {# ── Status + Tags + Notes ──────────────────────────── #}
+        <div class="form-section-label">
+          <svg data-lucide="tag"></svg> Classification &amp; Notes
+        </div>
+        <div class="modal-form-grid">
+          <div class="form-group">
+            <label class="form-label">Status</label>
+            <select name="status" class="form-control">
+              {% for st in RECORD_STATUS %}
+              <option value="{{ st.value }}">{{ st.label }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Privacy</label>
+            <div style="display:flex;align-items:center;gap:var(--sp-3);margin-top:var(--sp-2);">
+              <label class="toggle">
+                <input type="checkbox" name="is_private" id="isPrivateToggle" />
+                <span class="toggle-track"></span>
+              </label>
+              <span style="font-size:var(--text-sm);color:var(--text-mid);">Private record</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-group" style="margin-bottom:var(--sp-4);">
+          <label class="form-label">Tags</label>
+          <div class="tag-input-wrap" id="tagInputWrap">
+            <input type="text" id="tagTextField"
+                   class="tag-input-field"
+                   placeholder="Type tag + Enter (e.g. diabetes, cardio)…" />
+          </div>
+          <input type="hidden" name="tags" id="tagsHiddenInput" />
+        </div>
+
+        <div class="form-group" style="margin-bottom:var(--sp-4);">
+          <label class="form-label">Notes</label>
+          <textarea name="notes" class="form-control"
+                    placeholder="Additional observations, symptoms, medications…"
+                    style="min-height:80px;resize:vertical;"></textarea>
+        </div>
+
+        {# ── File Attachment ────────────────────────────────── #}
+        <div class="form-section-label">
+          <svg data-lucide="paperclip"></svg> Attachment (optional)
+        </div>
+        <div class="file-upload-zone" id="fileUploadZone">
+          <input type="file" name="attachment" id="attachmentInput"
+                 accept=".pdf,.png,.jpg,.jpeg,.gif,.webp,.doc,.docx,.txt,.csv,.xls,.xlsx" />
+          <svg data-lucide="upload-cloud"></svg>
+          <h4>Drop file here or click to browse</h4>
+          <p>PDF, Images, Lab Reports, Prescriptions — max 16 MB</p>
+        </div>
+        <div id="filePreviewArea" style="display:none;"></div>
+
+      </form>
+    </div>
+
+    <div class="health-modal-footer">
+      <button type="button" class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+      <button type="submit" form="healthRecordForm" class="btn btn-primary">
+        <svg data-lucide="save"></svg> Save Record
+      </button>
+    </div>
+
+  </div>
+</div>
+
 {% endblock %}
 
 {% block page_js %}
-<script>
-function calcBMI() {
-  const w = parseFloat(document.getElementById('weightInput').value);
-  const h = parseFloat(document.getElementById('heightInput').value) / 100;
-  const result = document.getElementById('bmiResult');
-  if (!w || !h) { result.style.display='none'; return; }
-  const bmi = (w / (h * h)).toFixed(1);
-  document.getElementById('bmiVal').textContent = bmi;
-  document.getElementById('bmiInput').value = bmi;
-  const label = document.getElementById('bmiLabel');
-  if (bmi < 18.5)      { label.textContent='Underweight'; label.className='badge badge-warning'; }
-  else if (bmi < 25)   { label.textContent='Normal';      label.className='badge badge-success'; }
-  else if (bmi < 30)   { label.textContent='Overweight';  label.className='badge badge-warning'; }
-  else                 { label.textContent='Obese';       label.className='badge badge-danger'; }
-  result.style.display = 'flex';
-}
-</script>
+<script src="{{ url_for('static', filename='js/health.js') }}"></script>
 {% endblock %}

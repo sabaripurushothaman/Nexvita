@@ -8,7 +8,7 @@ USER_ROLES = {
     'user': 'User'
 }
 
-# Health record types
+# Health record types (legacy — kept for backward compat with AI service)
 HEALTH_RECORD_TYPES = [
     'vital',
     'laboratory',
@@ -23,6 +23,88 @@ HEALTH_RECORD_TYPES = [
     'mental_health',
     'other'
 ]
+
+# ── New Health Records System ──────────────────────────────────────────────
+
+# Categories with display metadata
+HEALTH_CATEGORIES = {
+    'vital_signs':     {'label': 'Vital Signs',       'icon': 'activity',        'color': '#3B82F6', 'bg': '#DBEAFE'},
+    'laboratory':      {'label': 'Laboratory Tests',  'icon': 'flask-conical',   'color': '#F59E0B', 'bg': '#FEF3C7'},
+    'imaging':         {'label': 'Imaging',            'icon': 'scan',            'color': '#7C3AED', 'bg': '#EDE9FE'},
+    'diseases':        {'label': 'Diseases',           'icon': 'virus',           'color': '#EF4444', 'bg': '#FEE2E2'},
+    'medications':     {'label': 'Medications',        'icon': 'pill',            'color': '#00C897', 'bg': '#E6FBF5'},
+    'vaccinations':    {'label': 'Vaccinations',       'icon': 'syringe',         'color': '#10B981', 'bg': '#D1FAE5'},
+    'surgeries':       {'label': 'Surgeries',          'icon': 'scissors',        'color': '#EF4444', 'bg': '#FEE2E2'},
+    'consultations':   {'label': 'Consultations',      'icon': 'stethoscope',     'color': '#3B82F6', 'bg': '#DBEAFE'},
+    'allergies':       {'label': 'Allergies',          'icon': 'alert-triangle',  'color': '#F59E0B', 'bg': '#FEF3C7'},
+    'mental_health':   {'label': 'Mental Health',      'icon': 'brain',           'color': '#7C3AED', 'bg': '#EDE9FE'},
+    'lifestyle':       {'label': 'Lifestyle',          'icon': 'leaf',            'color': '#00C897', 'bg': '#E6FBF5'},
+    'nutrition':       {'label': 'Nutrition',          'icon': 'apple',           'color': '#10B981', 'bg': '#D1FAE5'},
+    'custom':          {'label': 'Custom',             'icon': 'folder-open',     'color': '#64748B', 'bg': '#F1F5F9'},
+}
+
+# Preset record types for quick selection
+HEALTH_RECORD_PRESET_TYPES = [
+    # Vital Signs
+    {'value': 'blood_pressure',    'label': 'Blood Pressure',    'category': 'vital_signs'},
+    {'value': 'heart_rate',        'label': 'Heart Rate',        'category': 'vital_signs'},
+    {'value': 'temperature',       'label': 'Temperature',       'category': 'vital_signs'},
+    {'value': 'weight_bmi',        'label': 'Weight / BMI',      'category': 'vital_signs'},
+    {'value': 'oxygen_saturation', 'label': 'Oxygen Saturation', 'category': 'vital_signs'},
+    {'value': 'respiratory_rate',  'label': 'Respiratory Rate',  'category': 'vital_signs'},
+    # Laboratory
+    {'value': 'blood_sugar',       'label': 'Blood Sugar',       'category': 'laboratory'},
+    {'value': 'cholesterol',       'label': 'Cholesterol',       'category': 'laboratory'},
+    {'value': 'thyroid',           'label': 'Thyroid Function',  'category': 'laboratory'},
+    {'value': 'cbc',               'label': 'CBC / Blood Count', 'category': 'laboratory'},
+    {'value': 'urine_test',        'label': 'Urine Test',        'category': 'laboratory'},
+    {'value': 'liver_function',    'label': 'Liver Function',    'category': 'laboratory'},
+    {'value': 'kidney_function',   'label': 'Kidney Function',   'category': 'laboratory'},
+    # Imaging
+    {'value': 'xray',              'label': 'X-Ray',             'category': 'imaging'},
+    {'value': 'mri',               'label': 'MRI',               'category': 'imaging'},
+    {'value': 'ct_scan',           'label': 'CT Scan',           'category': 'imaging'},
+    {'value': 'ultrasound',        'label': 'Ultrasound',        'category': 'imaging'},
+    {'value': 'ecg',               'label': 'ECG / EKG',         'category': 'imaging'},
+    # Diseases / Conditions
+    {'value': 'diabetes',          'label': 'Diabetes',          'category': 'diseases'},
+    {'value': 'hypertension',      'label': 'Hypertension',      'category': 'diseases'},
+    {'value': 'asthma',            'label': 'Asthma',            'category': 'diseases'},
+    # Others
+    {'value': 'vaccination',       'label': 'Vaccination',       'category': 'vaccinations'},
+    {'value': 'surgery',           'label': 'Surgery',           'category': 'surgeries'},
+    {'value': 'consultation',      'label': 'Consultation',      'category': 'consultations'},
+    {'value': 'eye_checkup',       'label': 'Eye Checkup',       'category': 'consultations'},
+    {'value': 'dental',            'label': 'Dental Record',     'category': 'consultations'},
+    {'value': 'allergy',           'label': 'Allergy',           'category': 'allergies'},
+    {'value': 'medication',        'label': 'Medication',        'category': 'medications'},
+    {'value': 'mental_health',     'label': 'Mental Health',     'category': 'mental_health'},
+    {'value': 'pregnancy',         'label': 'Pregnancy',         'category': 'consultations'},
+    {'value': 'custom',            'label': 'Custom / Other',    'category': 'custom'},
+]
+
+# Severity levels
+SEVERITY_LEVELS = [
+    {'value': 'normal',   'label': 'Normal',   'badge': 'badge-success', 'color': '#10B981'},
+    {'value': 'mild',     'label': 'Mild',     'badge': 'badge-info',    'color': '#3B82F6'},
+    {'value': 'moderate', 'label': 'Moderate', 'badge': 'badge-warning', 'color': '#F59E0B'},
+    {'value': 'severe',   'label': 'Severe',   'badge': 'badge-danger',  'color': '#EF4444'},
+    {'value': 'critical', 'label': 'Critical', 'badge': 'badge-danger',  'color': '#DC2626'},
+]
+
+# Record status options
+RECORD_STATUS = [
+    {'value': 'active',     'label': 'Active'},
+    {'value': 'resolved',   'label': 'Resolved'},
+    {'value': 'monitoring', 'label': 'Monitoring'},
+    {'value': 'chronic',    'label': 'Chronic'},
+]
+
+# Allowed attachment file extensions
+ALLOWED_ATTACHMENT_EXTENSIONS = {
+    'pdf', 'png', 'jpg', 'jpeg', 'gif', 'webp',
+    'doc', 'docx', 'txt', 'csv', 'xls', 'xlsx'
+}
 
 # Blood types
 BLOOD_TYPES = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-']

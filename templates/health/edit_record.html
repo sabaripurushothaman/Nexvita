@@ -1,66 +1,269 @@
 {% extends "base.html" %}
 {% block title %}Edit Record – NexVita{% endblock %}
 {% block page_title %}Edit Health Record{% endblock %}
+{% block page_subtitle %}Update the details of this record{% endblock %}
+
+{% block page_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/pages/health.css') }}" />
+{% endblock %}
 
 {% block content %}
-<div style="max-width:600px;">
-  <div class="card card-padded">
-    <form method="POST" action="{{ url_for('health.edit_record', id=record.id) }}">
-      <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token is defined else '' }}" />
+{% set cat_meta = record.get_category_meta() %}
 
-      <div class="form-group" style="margin-bottom:var(--sp-4);">
-        <label class="form-label">Record Type</label>
-        <select name="record_type" class="form-control">
-          <option value="vital" {% if record.record_type == 'vital' %}selected{% endif %}>Vital Signs</option>
-          {% for rtype in HEALTH_RECORD_TYPES %}
-          <option value="{{ rtype }}" {% if record.record_type == rtype %}selected{% endif %}>{{ rtype | capitalize }}</option>
+<div style="max-width:800px;margin:0 auto;">
+
+  {# ── Back bar ─────────────────────────────────────────────── #}
+  <div style="display:flex;align-items:center;gap:var(--sp-3);margin-bottom:var(--sp-5);">
+    <a href="{{ url_for('health.view_record', id=record.id) }}" class="btn btn-ghost btn-sm">
+      <svg data-lucide="arrow-left"></svg> Back
+    </a>
+    <div style="display:flex;align-items:center;gap:var(--sp-2);margin-left:auto;">
+      <div class="record-type-icon" style="background:{{ cat_meta.bg }};color:{{ cat_meta.color }};width:34px;height:34px;">
+        <svg data-lucide="{{ cat_meta.icon }}" style="width:16px;height:16px;"></svg>
+      </div>
+      <span style="font-weight:700;color:var(--text-dark);">{{ record.get_display_title() }}</span>
+    </div>
+  </div>
+
+  <div class="card anim-fade-up">
+    <div class="card-padded" style="border-bottom:1px solid var(--border);background:linear-gradient(135deg,var(--primary-light),#F0FFF8);">
+      <div style="display:flex;align-items:center;gap:var(--sp-3);">
+        <svg data-lucide="pencil" style="width:20px;height:20px;color:var(--primary);"></svg>
+        <div>
+          <div style="font-weight:700;font-size:var(--text-base);color:var(--text-dark);">Edit Record</div>
+          <div style="font-size:var(--text-xs);color:var(--text-mid);">Created {{ record.created_at.strftime('%B %d, %Y') if record.created_at else '' }}</div>
+        </div>
+      </div>
+    </div>
+
+    <form method="POST" action="{{ url_for('health.edit_record', id=record.id) }}"
+          enctype="multipart/form-data" id="healthRecordForm">
+
+      <div class="health-modal-body" style="max-height:none;padding:var(--sp-6);">
+
+        {# ── Preset types ─────────────────────────────────────── #}
+        <div class="form-section-label">
+          <svg data-lucide="zap"></svg> Record Type
+        </div>
+        <div class="preset-types-grid" style="margin-bottom:var(--sp-4);">
+          {% for pt in HEALTH_RECORD_PRESET_TYPES %}
+          {% set ci = HEALTH_CATEGORIES.get(pt.category, HEALTH_CATEGORIES.custom) %}
+          <button type="button" class="preset-type-btn {% if record.record_type == pt.value %}selected{% endif %}"
+                  data-value="{{ pt.value }}" data-category="{{ pt.category }}">
+            <svg data-lucide="{{ ci.icon }}" style="color:{{ ci.color }};"></svg>
+            {{ pt.label }}
+          </button>
           {% endfor %}
-        </select>
+        </div>
+        <input type="hidden" name="record_type" id="recordTypeHidden" value="{{ record.record_type }}" />
+        <input type="hidden" name="category"    id="categoryHidden"    value="{{ record.category or 'custom' }}" />
+
+        {# ── Core Details ─────────────────────────────────────── #}
+        <div class="form-section-label"><svg data-lucide="file-text"></svg> Record Details</div>
+        <div class="modal-form-grid">
+          <div class="form-group modal-form-full">
+            <label class="form-label">Record Title *</label>
+            <input type="text" name="title" class="form-control"
+                   value="{{ record.title or record.get_display_title() }}" required />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Record Date</label>
+            <input type="datetime-local" name="record_date" class="form-control"
+                   value="{{ record.record_date.strftime('%Y-%m-%dT%H:%M') if record.record_date else '' }}" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Follow-up Date</label>
+            <input type="datetime-local" name="follow_up_date" class="form-control"
+                   value="{{ record.follow_up_date.strftime('%Y-%m-%dT%H:%M') if record.follow_up_date else '' }}" />
+          </div>
+        </div>
+
+        <div class="form-group" style="margin-bottom:var(--sp-4);">
+          <label class="form-label">Description</label>
+          <textarea name="description" class="form-control" style="min-height:72px;resize:vertical;">{{ record.description or '' }}</textarea>
+        </div>
+
+        {# ── Result / Value ─────────────────────────────────── #}
+        <div class="form-section-label"><svg data-lucide="thermometer"></svg> Measurement / Result</div>
+        <div class="modal-form-grid cols-3">
+          <div class="form-group">
+            <label class="form-label">Result / Value</label>
+            <input type="text" name="result_value" class="form-control"
+                   value="{{ record.result_value or '' }}" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Unit</label>
+            <input type="text" name="result_unit" class="form-control"
+                   value="{{ record.result_unit or '' }}" placeholder="mmHg, mg/dL, °C…" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Severity</label>
+            <select name="severity" class="form-control">
+              {% for s in SEVERITY_LEVELS %}
+              <option value="{{ s.value }}" {% if record.severity == s.value %}selected{% endif %}>{{ s.label }}</option>
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+
+        {# ── Vital Signs ──────────────────────────────────────── #}
+        <div class="form-section-label"><svg data-lucide="activity"></svg> Vital Signs (optional)</div>
+        <div class="modal-form-grid">
+          <div class="form-group">
+            <label class="form-label">Systolic BP (mmHg)</label>
+            <input type="number" name="systolic_bp" class="form-control"
+                   value="{{ record.systolic_bp or '' }}" min="60" max="250" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Diastolic BP (mmHg)</label>
+            <input type="number" name="diastolic_bp" class="form-control"
+                   value="{{ record.diastolic_bp or '' }}" min="40" max="150" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Heart Rate (bpm)</label>
+            <input type="number" name="heart_rate" class="form-control"
+                   value="{{ record.heart_rate or '' }}" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Blood Sugar (mg/dL)</label>
+            <input type="number" name="glucose_level" class="form-control"
+                   value="{{ record.glucose_level or '' }}" step="0.1" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Temperature (°C)</label>
+            <input type="number" name="temperature" class="form-control"
+                   value="{{ record.temperature or '' }}" step="0.1" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">O₂ Saturation (%)</label>
+            <input type="number" name="oxygen_saturation" class="form-control"
+                   value="{{ record.oxygen_saturation or '' }}" step="0.1" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Weight (kg)</label>
+            <input type="number" id="weightInput" name="weight" class="form-control"
+                   value="{{ record.weight or '' }}" step="0.1" oninput="calcBMI()" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Height (cm)</label>
+            <input type="number" id="heightInput" name="height" class="form-control"
+                   value="{{ record.height or '' }}" oninput="calcBMI()" />
+          </div>
+        </div>
+        <div id="bmiDisplay" class="bmi-badge" style="display:none;margin-bottom:var(--sp-4);"></div>
+
+        {# ── Healthcare Provider ─────────────────────────────── #}
+        <div class="form-section-label"><svg data-lucide="stethoscope"></svg> Healthcare Provider</div>
+        <div class="modal-form-grid">
+          <div class="form-group">
+            <label class="form-label">Doctor Name</label>
+            <input type="text" name="doctor_name" class="form-control"
+                   value="{{ record.doctor_name or '' }}" placeholder="Dr. Jane Smith" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Hospital / Clinic</label>
+            <input type="text" name="hospital_name" class="form-control"
+                   value="{{ record.hospital_name or '' }}" />
+          </div>
+        </div>
+
+        {# ── Classification ───────────────────────────────────── #}
+        <div class="form-section-label"><svg data-lucide="tag"></svg> Classification &amp; Notes</div>
+        <div class="modal-form-grid">
+          <div class="form-group">
+            <label class="form-label">Status</label>
+            <select name="status" class="form-control">
+              {% for st in RECORD_STATUS %}
+              <option value="{{ st.value }}" {% if record.status == st.value %}selected{% endif %}>{{ st.label }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Privacy</label>
+            <div style="display:flex;align-items:center;gap:var(--sp-3);margin-top:var(--sp-2);">
+              <label class="toggle">
+                <input type="checkbox" name="is_private" {% if record.is_private %}checked{% endif %} />
+                <span class="toggle-track"></span>
+              </label>
+              <span style="font-size:var(--text-sm);color:var(--text-mid);">Private record</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-group" style="margin-bottom:var(--sp-4);">
+          <label class="form-label">Tags</label>
+          <div class="tag-input-wrap" id="tagInputWrap">
+            {# Pre-populate chips #}
+            {% for tag in record.get_tags_list() %}
+            <span class="tag-chip-item">{{ tag }}<button type="button" onclick="removeTag('{{ tag }}',this)">
+              <svg data-lucide="x"></svg></button></span>
+            {% endfor %}
+            <input type="text" id="tagTextField" class="tag-input-field"
+                   placeholder="Type tag + Enter…" />
+          </div>
+          <input type="hidden" name="tags" id="tagsHiddenInput"
+                 value="{{ record.get_tags_list() | join(',') }}" />
+        </div>
+
+        <div class="form-group" style="margin-bottom:var(--sp-4);">
+          <label class="form-label">Notes</label>
+          <textarea name="notes" class="form-control" style="min-height:100px;resize:vertical;">{{ record.notes or '' }}</textarea>
+        </div>
+
+        {# ── Attachment ─────────────────────────────────────── #}
+        <div class="form-section-label"><svg data-lucide="paperclip"></svg> Attachment</div>
+        {% if record.attachment_path %}
+        <div class="attachment-preview-card" style="margin-bottom:var(--sp-3);">
+          <svg data-lucide="file-check"></svg>
+          <div class="attachment-preview-info">
+            <div class="attachment-preview-name">{{ record.attachment_name or 'Current attachment' }}</div>
+            <div class="attachment-preview-meta">Upload a new file below to replace this one.</div>
+          </div>
+          <a href="{{ url_for('health.download_attachment', id=record.id) }}"
+             class="btn btn-ghost btn-sm">
+            <svg data-lucide="download"></svg>
+          </a>
+        </div>
+        {% endif %}
+        <div class="file-upload-zone" id="fileUploadZone">
+          <input type="file" name="attachment" id="attachmentInput"
+                 accept=".pdf,.png,.jpg,.jpeg,.gif,.webp,.doc,.docx,.txt,.csv,.xls,.xlsx" />
+          <svg data-lucide="upload-cloud"></svg>
+          <h4>{{ 'Replace attachment' if record.attachment_path else 'Add attachment' }}</h4>
+          <p>PDF, Images, Lab Reports, Prescriptions — max 16 MB</p>
+        </div>
+        <div id="filePreviewArea" style="display:none;"></div>
+
       </div>
 
-      <div class="form-grid form-grid-2" style="margin-bottom:var(--sp-4);">
-        <div class="form-group">
-          <label class="form-label">Systolic BP (mmHg)</label>
-          <input type="number" name="systolic_bp" class="form-control" value="{{ record.systolic_bp or '' }}" />
-        </div>
-        <div class="form-group">
-          <label class="form-label">Diastolic BP (mmHg)</label>
-          <input type="number" name="diastolic_bp" class="form-control" value="{{ record.diastolic_bp or '' }}" />
-        </div>
+      {# Footer buttons #}
+      <div class="health-modal-footer" style="border-top:1px solid var(--border);">
+        <a href="{{ url_for('health.view_record', id=record.id) }}" class="btn btn-ghost">Cancel</a>
+        <button type="submit" class="btn btn-primary">
+          <svg data-lucide="save"></svg> Save Changes
+        </button>
       </div>
 
-      <div class="form-grid form-grid-2" style="margin-bottom:var(--sp-4);">
-        <div class="form-group">
-          <label class="form-label">Heart Rate (bpm)</label>
-          <input type="number" name="heart_rate" class="form-control" value="{{ record.heart_rate or '' }}" />
-        </div>
-        <div class="form-group">
-          <label class="form-label">Blood Sugar (mg/dL)</label>
-          <input type="number" name="glucose_level" class="form-control" step="0.1" value="{{ record.glucose_level or '' }}" />
-        </div>
-      </div>
-
-      <div class="form-grid form-grid-2" style="margin-bottom:var(--sp-4);">
-        <div class="form-group">
-          <label class="form-label">Weight (kg)</label>
-          <input type="number" name="weight" class="form-control" step="0.1" value="{{ record.weight or '' }}" />
-        </div>
-        <div class="form-group">
-          <label class="form-label">Temperature (°C)</label>
-          <input type="number" name="temperature" class="form-control" step="0.1" value="{{ record.temperature or '' }}" />
-        </div>
-      </div>
-
-      <div class="form-group" style="margin-bottom:var(--sp-5);">
-        <label class="form-label">Notes</label>
-        <textarea name="notes" class="form-control" style="min-height:80px;">{{ record.notes or '' }}</textarea>
-      </div>
-
-      <div class="flex gap-3">
-        <a href="{{ url_for('health.index') }}" class="btn btn-ghost">Cancel</a>
-        <button type="submit" class="btn btn-primary"><svg data-lucide="save"></svg> Update Record</button>
-      </div>
     </form>
   </div>
 </div>
+{% endblock %}
+
+{% block page_js %}
+<script>
+window.PRESET_TYPES = {{ HEALTH_RECORD_PRESET_TYPES | tojson }};
+window.CATEGORIES   = {{ HEALTH_CATEGORIES | tojson }};
+// Pre-init tag list from existing record
+window._INITIAL_TAGS = {{ record.get_tags_list() | tojson }};
+</script>
+<script src="{{ url_for('static', filename='js/health.js') }}"></script>
+<script>
+// Sync initial tags
+if (window._INITIAL_TAGS) {
+  window._INITIAL_TAGS.forEach(t => { if (!tagList.includes(t)) tagList.push(t); });
+  syncTagsHidden();
+}
+// Trigger BMI calc if values pre-populated
+calcBMI();
+</script>
 {% endblock %}
