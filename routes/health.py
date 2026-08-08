@@ -48,10 +48,17 @@ def _parse_date(val):
 
 def _user_upload_dir():
     """Return (and create) the per-user upload directory."""
-    base = os.path.join(current_app.root_path, 'uploads', 'health',
-                        str(current_user.id))
-    os.makedirs(base, exist_ok=True)
-    return base
+    try:
+        base = os.path.join(current_app.root_path, 'uploads', 'health',
+                            str(current_user.id))
+        os.makedirs(base, exist_ok=True)
+        return base
+    except OSError:
+        import tempfile
+        base = os.path.join(tempfile.gettempdir(), 'uploads', 'health',
+                            str(current_user.id))
+        os.makedirs(base, exist_ok=True)
+        return base
 
 
 def _allowed_file(filename):

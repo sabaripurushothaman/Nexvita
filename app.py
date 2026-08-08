@@ -96,8 +96,11 @@ def create_app(config_name=None):
 
     # Create uploads directory if it doesn't exist
     uploads_dir = os.path.join(basedir, 'uploads')
-    if not os.path.exists(uploads_dir):
-        os.makedirs(uploads_dir)
+    try:
+        if not os.path.exists(uploads_dir):
+            os.makedirs(uploads_dir)
+    except OSError:
+        pass
 
     return app
 
