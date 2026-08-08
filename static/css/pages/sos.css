@@ -1,6 +1,97 @@
-/* ===== SOS & Emergency CSS ===== */
+/* ================================================================
+   NexVita – sos.css
+   SOS Emergency page, Hospital cards, Hospital map page
+   ================================================================ */
 
-/* SOS Hero */
+/* ────────────────────────────────────────────────────────────────
+   EMERGENCY CHANNELS BANNER (new 3-channel layout)
+   ──────────────────────────────────────────────────────────────── */
+
+.sos-channels-banner {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--sp-4);
+  margin-bottom: var(--sp-4);
+}
+
+.sos-channel {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-4);
+  padding: var(--sp-5) var(--sp-6);
+  border-radius: var(--radius-xl);
+  border: 1px solid;
+  background: var(--bg-card);
+  position: relative;
+  overflow: hidden;
+}
+
+.sos-channel::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  opacity: 0.05;
+  pointer-events: none;
+}
+
+.sos-channel--danger  { border-color: rgba(239,68,68,.30);  }
+.sos-channel--danger::before  { background: #EF4444; }
+.sos-channel--warning { border-color: rgba(245,158,11,.30); }
+.sos-channel--warning::before { background: #F59E0B; }
+.sos-channel--info    { border-color: rgba(59,130,246,.20); }
+.sos-channel--info::before    { background: #3B82F6; }
+
+.sos-channel__icon {
+  width: 52px; height: 52px;
+  border-radius: var(--radius);
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.sos-channel--danger  .sos-channel__icon { background: #FEE2E2; color: var(--danger); }
+.sos-channel--warning .sos-channel__icon { background: #FEF3C7; color: #D97706; }
+.sos-channel--info    .sos-channel__icon { background: #EFF6FF; color: #2563EB; }
+
+.sos-channel__body { flex: 1; }
+.sos-channel__label {
+  font-weight: 700;
+  font-size: var(--text-sm);
+  color: var(--text-main);
+  margin-bottom: 2px;
+}
+.sos-channel__desc {
+  font-size: var(--text-xs);
+  color: var(--text-mid);
+  line-height: 1.4;
+}
+
+/* Warning button variant */
+.btn-warning {
+  background: linear-gradient(135deg, #F59E0B, #D97706);
+  color: white;
+  border: none;
+}
+.btn-warning:hover {
+  background: linear-gradient(135deg, #D97706, #B45309);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(245,158,11,.35);
+}
+
+/* ────────────────────────────────────────────────────────────────
+   Location strip (compact, below banner)
+   ──────────────────────────────────────────────────────────────── */
+
+.sos-location-strip {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: var(--sp-3) var(--sp-5);
+  margin-bottom: var(--sp-5);
+}
+
+/* ────────────────────────────────────────────────────────────────
+   Legacy SOS Hero (kept for backward compat / other uses)
+   ──────────────────────────────────────────────────────────────── */
+
 .sos-hero {
   display: grid;
   grid-template-columns: 1fr auto;
@@ -14,40 +105,26 @@
 }
 
 .sos-hero__text h2 { font-size: var(--text-3xl); color: var(--danger); margin-bottom: var(--sp-3); }
-.sos-hero__text p { color: var(--text-mid); margin-bottom: var(--sp-6); max-width: 480px; }
-
+.sos-hero__text p  { color: var(--text-mid); margin-bottom: var(--sp-6); max-width: 480px; }
 .sos-quick-actions { display: flex; gap: var(--sp-3); flex-wrap: wrap; }
 
-/* SOS Button */
-.sos-btn-wrap {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
+/* SOS big button */
+.sos-btn-wrap { display: flex; align-items: center; justify-content: center; }
 
 .sos-btn {
-  width: 140px;
-  height: 140px;
+  width: 140px; height: 140px;
   border-radius: var(--radius-full);
   background: linear-gradient(135deg, var(--danger), #DC2626);
   color: white;
   border: none;
   cursor: pointer;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 8px 32px rgba(239, 68, 68, 0.45);
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  box-shadow: 0 8px 32px rgba(239,68,68,.45);
   transition: all var(--dur-med) var(--ease-out);
-  position: relative;
-  z-index: 1;
+  position: relative; z-index: 1;
 }
-
-.sos-btn:hover {
-  transform: scale(1.05);
-  box-shadow: 0 12px 40px rgba(239, 68, 68, 0.55);
-}
-
+.sos-btn:hover  { transform: scale(1.05); box-shadow: 0 12px 40px rgba(239,68,68,.55); }
 .sos-btn:active { transform: scale(0.97); }
 
 .sos-btn__text {
@@ -56,67 +133,63 @@
   font-weight: 800;
   letter-spacing: 0.05em;
 }
+.sos-btn__sub { font-size: var(--text-xs); opacity: 0.85; margin-top: 2px; }
 
-.sos-btn__sub {
-  font-size: var(--text-xs);
-  opacity: 0.85;
-  margin-top: 2px;
-}
+/* ────────────────────────────────────────────────────────────────
+   Main 2-col SOS grid
+   ──────────────────────────────────────────────────────────────── */
 
-/* Location card */
 .sos-location-card { margin-bottom: var(--sp-6); }
 
-/* Main grid */
 .sos-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: var(--sp-6);
 }
 
-/* Contacts */
+/* ────────────────────────────────────────────────────────────────
+   Emergency Contacts
+   ──────────────────────────────────────────────────────────────── */
+
 .contact-list { display: flex; flex-direction: column; gap: var(--sp-3); }
 
 .contact-item {
-  display: flex;
-  align-items: center;
-  gap: var(--sp-4);
+  display: flex; align-items: center; gap: var(--sp-4);
   padding: var(--sp-4);
   background: var(--bg-page);
   border-radius: var(--radius-sm);
   border: 1px solid var(--border);
 }
 
-.contact-item__body { flex: 1; }
-.contact-item__name { font-weight: 600; font-size: var(--text-sm); }
-.contact-item__rel  { font-size: var(--text-xs); color: var(--text-mid); }
+.contact-item__body  { flex: 1; }
+.contact-item__name  { font-weight: 600; font-size: var(--text-sm); }
+.contact-item__rel   { font-size: var(--text-xs); color: var(--text-mid); }
 .contact-item__phone {
-  display: flex;
-  align-items: center;
-  gap: 4px;
+  display: flex; align-items: center; gap: 4px;
   font-size: var(--text-xs);
   color: var(--primary);
   margin-top: 4px;
 }
 
 .contact-item__actions {
-  display: flex;
-  align-items: center;
-  gap: var(--sp-2);
-  flex-shrink: 0;
+  display: flex; align-items: center; gap: var(--sp-2); flex-shrink: 0;
 }
 
-/* Hospital mini list */
+/* ────────────────────────────────────────────────────────────────
+   Hospital mini items (SOS panel)
+   ──────────────────────────────────────────────────────────────── */
+
 .hospital-list-mini { display: flex; flex-direction: column; gap: var(--sp-3); }
 
 .hospital-mini-item {
-  display: flex;
-  align-items: center;
-  gap: var(--sp-3);
+  display: flex; align-items: flex-start; gap: var(--sp-3);
   padding: var(--sp-3);
   background: var(--bg-page);
   border-radius: var(--radius-sm);
   border: 1px solid var(--border);
+  transition: border-color var(--dur-fast) var(--ease-out);
 }
+.hospital-mini-item:hover { border-color: var(--primary-light); }
 
 .hospital-mini-icon {
   width: 36px; height: 36px;
@@ -126,13 +199,108 @@
   flex-shrink: 0;
 }
 
-.hospital-mini-body { flex: 1; }
-.hospital-mini-name { font-size: var(--text-sm); font-weight: 600; }
-.hospital-mini-addr { font-size: var(--text-xs); color: var(--text-mid); }
+.hospital-mini-body  { flex: 1; min-width: 0; }
+.hospital-mini-name  { font-size: var(--text-sm); font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.hospital-mini-addr  { font-size: var(--text-xs); color: var(--text-mid); line-height: 1.3; }
+.hospital-mini-phone { margin-top: 2px; }
 
-.hospital-mini-meta { display: flex; align-items: center; gap: var(--sp-2); flex-shrink: 0; }
+.hospital-mini-meta {
+  display: flex; flex-direction: column;
+  align-items: flex-end; gap: var(--sp-2);
+  flex-shrink: 0;
+}
 
-/* Hospitals Map Page */
+/* ────────────────────────────────────────────────────────────────
+   Hospital card grid (hospital/index.html)
+   ──────────────────────────────────────────────────────────────── */
+
+.hospitals-card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: var(--sp-4);
+}
+
+.hospital-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: var(--sp-5);
+  display: flex; flex-direction: column; gap: var(--sp-3);
+  transition: border-color var(--dur-fast) var(--ease-out),
+              box-shadow   var(--dur-fast) var(--ease-out);
+}
+.hospital-card:hover {
+  border-color: var(--primary-light);
+  box-shadow: 0 4px 16px rgba(0,200,151,.12);
+}
+
+.hospital-card__header {
+  display: flex; align-items: flex-start;
+  justify-content: space-between; gap: var(--sp-3);
+}
+
+.hospital-card__icon {
+  width: 40px; height: 40px;
+  background: var(--info-light);
+  border-radius: var(--radius-sm);
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+
+.hospital-card__badges {
+  display: flex; gap: var(--sp-2); flex-wrap: wrap; justify-content: flex-end;
+}
+
+.hospital-card__name {
+  font-weight: 700; font-size: var(--text-base);
+  color: var(--text-main); line-height: 1.3;
+}
+
+.hospital-card__addr {
+  font-size: var(--text-xs); color: var(--text-mid);
+  display: flex; align-items: flex-start; gap: 4px;
+  line-height: 1.4;
+}
+
+.hospital-card__phone {
+  font-size: var(--text-xs); color: var(--text-mid);
+}
+
+/* Rating row */
+.hospital-card__rating {
+  display: flex; align-items: center; gap: var(--sp-2);
+}
+.hospital-card__stars  { font-size: var(--text-sm); letter-spacing: -1px; }
+.hospital-card__rating-num {
+  font-weight: 700; font-size: var(--text-sm);
+  color: #D97706;
+}
+
+/* Footer with actions + source attribution */
+.hospital-card__footer {
+  display: flex; align-items: center;
+  justify-content: space-between; gap: var(--sp-2);
+  margin-top: auto; padding-top: var(--sp-2);
+}
+
+.hospital-card__actions {
+  display: flex; gap: var(--sp-2); flex-wrap: wrap;
+}
+
+.hospital-card__source {
+  font-size: 10px;
+  color: var(--text-mid);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 2px 6px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+/* ────────────────────────────────────────────────────────────────
+   Hospitals map+list page (sos/hospitals.html)
+   ──────────────────────────────────────────────────────────────── */
+
 .hospitals-layout {
   display: grid;
   grid-template-columns: 380px 1fr;
@@ -142,17 +310,13 @@
 }
 
 .hospitals-list-panel {
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
+  display: flex; flex-direction: column; overflow: hidden;
 }
 
 .hospital-list {
-  flex: 1;
-  overflow-y: auto;
-  display: flex;
-  flex-direction: column;
-  gap: var(--sp-3);
+  flex: 1; overflow-y: auto;
+  display: flex; flex-direction: column; gap: var(--sp-3);
+  padding-right: 2px;
 }
 
 .hospital-list-item {
@@ -161,38 +325,43 @@
   border-radius: var(--radius-sm);
   padding: var(--sp-4);
   cursor: pointer;
-  display: flex;
-  align-items: flex-start;
-  gap: var(--sp-4);
-  justify-content: space-between;
+  display: flex; align-items: flex-start;
+  gap: var(--sp-4); justify-content: space-between;
+  transition: border-color var(--dur-fast), background var(--dur-fast);
 }
-
-.hospital-list-item.active, .hospital-list-item:hover { border-color: var(--primary); background: var(--primary-light); }
+.hospital-list-item.active,
+.hospital-list-item:hover { border-color: var(--primary); background: var(--primary-light); }
 
 .hospital-list-item__name { font-weight: 600; font-size: var(--text-sm); }
-.hospital-list-item__addr { font-size: var(--text-xs); color: var(--text-mid); margin-top: 4px; display: flex; align-items: center; gap: 4px; }
+.hospital-list-item__addr {
+  font-size: var(--text-xs); color: var(--text-mid);
+  margin-top: 4px; display: flex; align-items: center; gap: 4px;
+}
 
-.hospital-list-item__meta { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; flex-shrink: 0; }
+.hospital-list-item__meta {
+  display: flex; flex-direction: column;
+  align-items: flex-end; gap: 6px; flex-shrink: 0;
+}
 
-.hospitals-map-panel { border-radius: var(--radius); overflow: hidden; border: 1px solid var(--border); }
+.hospitals-map-panel {
+  border-radius: var(--radius); overflow: hidden;
+  border: 1px solid var(--border);
+}
 
-/* SOS Countdown Overlay */
+/* ────────────────────────────────────────────────────────────────
+   SOS Countdown Overlay
+   ──────────────────────────────────────────────────────────────── */
+
 .sos-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(239, 68, 68, 0.95);
+  position: fixed; inset: 0;
+  background: rgba(239,68,68,.95);
   z-index: 2000;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  align-items: center; justify-content: center;
   display: none;
 }
 .sos-overlay.active { display: flex; }
 
-.sos-overlay__card {
-  text-align: center;
-  padding: var(--sp-12);
-}
+.sos-overlay__card { text-align: center; padding: var(--sp-12); }
 
 .sos-overlay__icon {
   width: 80px; height: 80px;
@@ -204,14 +373,26 @@
 
 .sos-countdown {
   font-family: var(--font-heading);
-  font-size: 5rem;
-  font-weight: 800;
+  font-size: 5rem; font-weight: 800;
   color: white;
   animation: heartbeat 1s ease-in-out infinite;
 }
 
-/* Emergency Contacts Form */
+/* ────────────────────────────────────────────────────────────────
+   Emergency contact form
+   ──────────────────────────────────────────────────────────────── */
+
 .ec-form-card { max-width: 600px; }
+
+/* ────────────────────────────────────────────────────────────────
+   Responsive
+   ──────────────────────────────────────────────────────────────── */
+
+@media (max-width: 1100px) {
+  .sos-channels-banner { grid-template-columns: 1fr; }
+  .sos-channel { flex-wrap: wrap; }
+  .sos-channel .btn { width: 100%; justify-content: center; }
+}
 
 @media (max-width: 1024px) {
   .sos-grid { grid-template-columns: 1fr; }
@@ -219,4 +400,11 @@
   .sos-hero { grid-template-columns: 1fr; text-align: center; }
   .sos-quick-actions { justify-content: center; }
   .sos-btn-wrap { order: -1; }
+  .hospitals-card-grid { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 640px) {
+  .sos-channels-banner { gap: var(--sp-3); }
+  .sos-channel { padding: var(--sp-4); gap: var(--sp-3); }
+  .hospital-card__footer { flex-direction: column; align-items: flex-start; }
 }

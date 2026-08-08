@@ -32,8 +32,49 @@ class Config:
     AI_PROVIDER     = os.environ.get('AI_PROVIDER', 'gemini')  # 'gemini' | 'openai'
     AI_RATE_LIMIT   = int(os.environ.get('AI_RATE_LIMIT_PER_MIN', '20'))
     AI_CACHE_TTL    = int(os.environ.get('AI_CACHE_TTL', '300'))
-    # Map API keys
-    GOOGLE_MAPS_API_KEY = os.environ.get('GOOGLE_MAPS_API_KEY')
+    # Map / Places API keys
+    GEOAPIFY_API_KEY = os.environ.get('GEOAPIFY_API_KEY', '')
+    # -- Hospital provider ------------------------------------------------
+    # 'geoapify' = Geoapify Places API -- requires GEOAPIFY_API_KEY (DEFAULT)
+    # 'overpass'  = OpenStreetMap Overpass (free, no key, lower data quality)
+    # If geoapify is set but GEOAPIFY_API_KEY is empty, falls back to overpass.
+    HOSPITALS_PROVIDER   = os.environ.get('HOSPITALS_PROVIDER', 'geoapify')
+    HOSPITALS_RADIUS_KM  = int(os.environ.get('HOSPITALS_RADIUS_KM', '10'))
+    OVERPASS_TIMEOUT     = int(os.environ.get('OVERPASS_TIMEOUT', '15'))
+    # ── SMS / Twilio ────────────────────────────────────────────
+    # Get credentials at https://console.twilio.com
+    # Leave empty to run without SMS (SOS will be logged but not sent)
+    TWILIO_ACCOUNT_SID  = os.environ.get('TWILIO_ACCOUNT_SID', '')
+    TWILIO_AUTH_TOKEN   = os.environ.get('TWILIO_AUTH_TOKEN', '')
+    TWILIO_PHONE_NUMBER = os.environ.get('TWILIO_PHONE_NUMBER', '')
+
+
+def startup_diagnostics():
+    """
+    Print a safe startup summary of key configuration values.
+    NEVER prints actual secret values — only boolean presence.
+    """
+    geo_key    = bool(os.environ.get('GEOAPIFY_API_KEY', '').strip())
+    twilio_sid = bool(os.environ.get('TWILIO_ACCOUNT_SID', '').strip())
+    twilio_tok = bool(os.environ.get('TWILIO_AUTH_TOKEN', '').strip())
+    twilio_num = bool(os.environ.get('TWILIO_PHONE_NUMBER', '').strip())
+    provider   = os.environ.get('HOSPITALS_PROVIDER', 'geoapify')
+    radius     = os.environ.get('HOSPITALS_RADIUS_KM', '10')
+
+    lines = [
+        '',
+        '--- NexVita Configuration Diagnostics ----------------------------',
+        f'  Geoapify API key    : {"[OK] configured" if geo_key else "[!!] NOT SET - hospital search will use Overpass fallback"}',
+        f'  Hospital provider   : {provider}',
+        f'  Hospital radius     : {radius} km',
+        f'  Twilio SID          : {"[OK] configured" if twilio_sid else "[--] NOT SET"}',
+        f'  Twilio token        : {"[OK] configured" if twilio_tok else "[--] NOT SET"}',
+        f'  Twilio from number  : {"[OK] configured" if twilio_num else "[--] NOT SET"}',
+        f'  SOS SMS delivery    : {"[OK] enabled" if (twilio_sid and twilio_tok and twilio_num) else "[--] disabled (demo mode)"}',
+        '------------------------------------------------------------------',
+        '',
+    ]
+    print('\n'.join(lines))
 
 class DevelopmentConfig(Config):
     DEBUG = True

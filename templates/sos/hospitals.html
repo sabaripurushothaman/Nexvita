@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block title %}Nearby Hospitals – NexVita{% endblock %}
 {% block page_title %}Nearby Hospitals{% endblock %}
-{% block page_subtitle %}Find hospitals close to your location{% endblock %}
+{% block page_subtitle %}Live hospital search powered by your GPS location{% endblock %}
 
 {% block page_css %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/pages/sos.css') }}" />
@@ -9,55 +9,50 @@
 
 {% block content %}
 <div class="hospitals-layout">
-  <!-- Hospital List -->
+
+  <!-- ===== LEFT PANEL: List ===== -->
   <div class="hospitals-list-panel">
-    <div class="search-bar" style="margin-bottom:var(--sp-4);">
-      <svg data-lucide="search"></svg>
-      <input type="text" placeholder="Search hospitals..." id="hospitalSearch" oninput="filterHospitals(this.value)" />
-    </div>
-    <div class="hospital-list" id="hospitalList">
-      {% if hospitals %}
-        {% for hospital in hospitals %}
-        <div class="hospital-list-item hover-lift" data-name="{{ hospital.name | lower }}" data-city="{{ hospital.city | lower }}"
-             onclick="focusHospital({{ loop.index0 }})">
-          <div class="hospital-list-item__body">
-            <div class="hospital-list-item__name">{{ hospital.name }}</div>
-            <div class="hospital-list-item__addr">
-              <svg data-lucide="map-pin" style="width:12px;height:12px;"></svg>
-              {{ hospital.address }}{% if hospital.city %}, {{ hospital.city }}{% endif %}
-            </div>
-            {% if hospital.phone %}
-            <div style="font-size:var(--text-xs);color:var(--text-mid);margin-top:4px;">
-              <svg data-lucide="phone" style="width:12px;height:12px;display:inline;"></svg> {{ hospital.phone }}
-            </div>
-            {% endif %}
-          </div>
-          <div class="hospital-list-item__meta">
-            {% if hospital.emergency_services %}
-            <span class="badge badge-success"><span class="dot"></span> 24/7</span>
-            {% endif %}
-            {% if hospital.rating %}
-            <span class="badge badge-warning">★ {{ hospital.rating }}</span>
-            {% endif %}
-            {% if hospital.phone %}
-            <a href="tel:{{ hospital.phone }}" class="btn btn-primary btn-icon btn-sm" onclick="event.stopPropagation()">
-              <svg data-lucide="phone" style="width:13px;height:13px;"></svg>
-            </a>
-            {% endif %}
-          </div>
-        </div>
-        {% endfor %}
-      {% else %}
-      <div class="empty-state">
-        <svg data-lucide="building-2"></svg>
-        <h3>No hospitals found</h3>
-        <p>Enable location services to find nearby hospitals.</p>
+
+    <!-- Toolbar -->
+    <div style="display:flex;gap:var(--sp-2);margin-bottom:var(--sp-3);align-items:center;flex-wrap:wrap;">
+      <div class="search-bar" style="flex:1;">
+        <svg data-lucide="search"></svg>
+        <input type="text" placeholder="Filter hospitals…" id="hospitalSearch"
+               oninput="filterHospitalsSidebar(this.value)" />
       </div>
-      {% endif %}
+      <button class="btn btn-ghost btn-sm" onclick="detectAndLoad()" title="Refresh">
+        <svg data-lucide="refresh-cw" style="width:14px;height:14px;"></svg>
+      </button>
+      <a href="tel:112" class="btn btn-danger btn-sm" onclick="showCall112Toast()">
+        <svg data-lucide="phone-call" style="width:13px;height:13px;"></svg>
+        112
+      </a>
     </div>
+
+    <!-- Count + source -->
+    <div style="display:flex;align-items:center;gap:var(--sp-2);margin-bottom:var(--sp-3);">
+      <div style="font-size:var(--text-xs);color:var(--text-mid);" id="hospitalCount"></div>
+      <span id="dataSource"></span>
+    </div>
+
+    <!-- State panel -->
+    <div id="hospitalState">
+      <div class="empty-state" style="min-height:280px;">
+        <div class="spinner" style="margin:0 auto var(--sp-4);"></div>
+        <h3>Searching…</h3>
+        <p>Detecting your GPS location…</p>
+      </div>
+    </div>
+
+    <!-- Hospital list items (sidebar style) -->
+    <div class="hospital-list" id="hospitalsGrid" style="display:none;"></div>
+
+    <!-- Attribution -->
+    <p id="mapAttribution"
+       style="font-size:10px;color:var(--text-mid);margin-top:var(--sp-2);"></p>
   </div>
 
-  <!-- Map Panel -->
+  <!-- ===== RIGHT PANEL: Map ===== -->
   <div class="hospitals-map-panel">
     <div id="hospitalMap" style="height:100%;min-height:500px;border-radius:var(--radius);"></div>
   </div>
@@ -66,20 +61,150 @@
 
 {% block page_js %}
 <script src="{{ url_for('static', filename='js/maps.js') }}"></script>
+<script src="{{ url_for('static', filename='js/hospitals.js') }}"></script>
 <script>
-  const hospitalsData = [
-    {% for hospital in hospitals %}
-    {
-      name: {{ hospital.name | tojson }},
-      address: {{ (hospital.address or '') | tojson }},
-      city: {{ (hospital.city or '') | tojson }},
-      phone: {{ (hospital.phone or '') | tojson }},
-      emergency: {{ hospital.emergency_services | lower }},
-      lat: {{ hospital.latitude or 'null' }},
-      lng: {{ hospital.longitude or 'null' }},
-    }{% if not loop.last %},{% endif %}
-    {% endfor %}
-  ];
-  initHospitalMap('hospitalMap', hospitalsData, {{ latitude or 'null' }}, {{ longitude or 'null' }});
+  /* ──────────────────────────────────────────────────────
+     Override renderHospitals for the sidebar+map layout.
+     The default hospitals.js renders card-grid; here we
+     render compact list items and also populate the Leaflet map.
+     ────────────────────────────────────────────────────── */
+
+  let _mapMarkers = [];
+
+  const _originalRender = renderHospitals;
+  renderHospitals = function(hospitals, source, attribution) {
+    // ── Update count / source / attribution ──
+    const countEl  = document.getElementById('hospitalCount');
+    const stateEl  = document.getElementById('hospitalState');
+    const attrEl   = document.getElementById('mapAttribution');
+    const sourceEl = document.getElementById('dataSource');
+
+    if (stateEl)  stateEl.style.display = 'none';
+    if (countEl)  countEl.textContent   = `${hospitals.length} hospital${hospitals.length !== 1 ? 's' : ''} found`;
+    if (attrEl)   attrEl.textContent    = attribution || '';
+    if (sourceEl) {
+      sourceEl.innerHTML = source === 'geoapify'
+        ? '<span class="badge badge-neutral" style="font-size:10px;">Geoapify</span>'
+        : source === 'overpass'
+          ? '<span class="badge badge-neutral" style="font-size:10px;">OpenStreetMap</span>'
+          : '';
+    }
+
+    // ── Render sidebar list ──
+    const grid = document.getElementById('hospitalsGrid');
+    if (grid) {
+      grid.style.display = '';
+      grid.innerHTML = hospitals.map((h, idx) => buildSidebarItem(h, idx)).join('');
+      if (window.lucide) lucide.createIcons();
+    }
+
+    // ── Populate Leaflet map ──
+    const mapData = hospitals.map(h => ({
+      name    : h.name,
+      address : h.address || '',
+      phone   : h.phone   || '',
+      lat     : h.latitude,
+      lng     : h.longitude,
+      rating  : h.rating,
+      open_now: h.open_now,
+      maps_url: h.maps_url,
+    }));
+    if (typeof initHospitalMap === 'function') {
+      initHospitalMap('hospitalMap', mapData, hUserLat, hUserLng);
+    }
+  };
+
+  function buildSidebarItem(h, idx) {
+    const distBadge = h.distance_km != null
+      ? `<span class="badge badge-neutral" style="font-size:10px;">${h.distance_km} km</span>` : '';
+
+    let openBadge = '';
+    if (h.open_now === true)  openBadge = '<span class="badge badge-success" style="font-size:10px;">Open</span>';
+    if (h.open_now === false) openBadge = '<span class="badge badge-danger"  style="font-size:10px;">Closed</span>';
+
+    const mapsUrl = h.maps_url
+      || (h.latitude != null ? `https://www.google.com/maps?q=${h.latitude},${h.longitude}` : null);
+
+    const callBtn = h.phone
+      ? `<a href="tel:${escHtml(h.phone)}" class="btn btn-primary btn-icon btn-sm"
+             onclick="event.stopPropagation()" title="Call">
+           <svg data-lucide="phone" style="width:12px;height:12px;"></svg>
+         </a>` : '';
+
+    const mapBtn = mapsUrl
+      ? `<a href="${escHtml(mapsUrl)}" target="_blank" rel="noopener noreferrer"
+             class="btn btn-ghost btn-icon btn-sm"
+             onclick="event.stopPropagation()" title="View on Map">
+           <svg data-lucide="map-pin" style="width:12px;height:12px;"></svg>
+         </a>` : '';
+
+    const ratingText = h.rating != null
+      ? `<span style="font-size:10px;color:var(--text-mid);">⭐ ${h.rating.toFixed(1)}</span>` : '';
+
+    return `
+      <div class="hospital-list-item hover-lift" data-idx="${idx}"
+           onclick="focusHospitalOnMap(${idx})" title="${escHtml(h.name)}">
+        <div class="hospital-list-item__body" style="flex:1;min-width:0;">
+          <div class="hospital-list-item__name">${escHtml(h.name)}</div>
+          ${h.address ? `<div class="hospital-list-item__addr">
+            <svg data-lucide="map-pin" style="width:11px;height:11px;display:inline;flex-shrink:0;"></svg>
+            <span>${escHtml(h.address)}</span>
+          </div>` : ''}
+          ${h.phone ? `<div style="font-size:var(--text-xs);color:var(--text-mid);margin-top:2px;">
+            <svg data-lucide="phone" style="width:10px;height:10px;display:inline;margin-right:2px;"></svg>
+            ${escHtml(h.phone)}
+          </div>` : ''}
+        </div>
+        <div class="hospital-list-item__meta">
+          ${distBadge} ${openBadge} ${ratingText}
+          <div style="display:flex;gap:4px;">${callBtn}${mapBtn}</div>
+        </div>
+      </div>`;
+  }
+
+  let _allHospitals = [];
+  const _origLoadComplete = renderHospitals;
+
+  // Capture hospital data for filter
+  const _origDetect = detectAndLoad;
+
+  function filterHospitalsSidebar(query) {
+    if (!hCurrentData.length) return;
+    const q = query.trim().toLowerCase();
+    const filtered = q.length < 2
+      ? hCurrentData
+      : hCurrentData.filter(h =>
+          (h.name    || '').toLowerCase().includes(q) ||
+          (h.address || '').toLowerCase().includes(q)
+        );
+    const grid = document.getElementById('hospitalsGrid');
+    const countEl = document.getElementById('hospitalCount');
+    if (grid) {
+      grid.innerHTML = filtered.map((h, i) => buildSidebarItem(h, i)).join('');
+      if (window.lucide) lucide.createIcons();
+    }
+    if (countEl) countEl.textContent =
+      `${filtered.length} hospital${filtered.length !== 1 ? 's' : ''} found`;
+  }
+
+  function focusHospitalOnMap(idx) {
+    // Highlight list item
+    document.querySelectorAll('.hospital-list-item').forEach((el, i) => {
+      el.classList.toggle('active', i === idx);
+    });
+    // Pan the Leaflet map if available
+    if (window._nexvitaMap && hCurrentData[idx]) {
+      const h = hCurrentData[idx];
+      window._nexvitaMap.setView([h.latitude, h.longitude], 16);
+    }
+  }
+
+  function showCall112Toast() {
+    if (typeof showFlash === 'function') {
+      showFlash('📞 Opening your phone to call 112. Dial 112 manually if it does not open.', 'info');
+    }
+  }
+
+  initHospitalDirectory('{{ url_for("hospital.api_nearby") }}');
 </script>
 {% endblock %}

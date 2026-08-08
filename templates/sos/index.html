@@ -1,64 +1,74 @@
 {% extends "base.html" %}
 {% block title %}SOS Emergency – NexVita{% endblock %}
 {% block page_title %}SOS Emergency{% endblock %}
-{% block page_subtitle %}Quick access to emergency services and contacts{% endblock %}
+{% block page_subtitle %}Emergency services, location sharing, and nearby hospitals{% endblock %}
 
 {% block page_css %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/pages/sos.css') }}" />
 {% endblock %}
 
 {% block content %}
-<!-- ===== EMERGENCY HEADER BANNER ===== -->
-<div class="sos-hero">
-  <div class="sos-hero__left">
-    <div class="sos-hero__text">
-      <h2>Emergency SOS</h2>
-      <p>Press the SOS button to instantly alert your emergency contacts and locate the nearest hospital.</p>
-      <div class="sos-quick-actions">
-        <a href="tel:112" class="btn btn-danger btn-lg" id="callBtn">
-          <svg data-lucide="phone-call"></svg>
-          Call Emergency (112)
-        </a>
-        <button class="btn btn-ghost btn-lg" onclick="shareLocation()" id="shareLocBtn">
-          <svg data-lucide="share-2"></svg>
-          Share Location
-        </button>
-      </div>
+
+<!-- ================================================================
+     EMERGENCY CHANNELS BANNER
+     Two clearly distinct channels — Call 112 and Share Location
+     ================================================================ -->
+<div class="sos-channels-banner">
+
+  <!-- Channel 1: Call 112 -->
+  <div class="sos-channel sos-channel--danger">
+    <div class="sos-channel__icon">
+      <svg data-lucide="phone-call" style="width:28px;height:28px;"></svg>
     </div>
+    <div class="sos-channel__body">
+      <div class="sos-channel__label">Emergency Services</div>
+      <div class="sos-channel__desc">Opens your phone dialler to call 112</div>
+    </div>
+    <!--
+      IMPORTANT: This is a plain tel: link. It opens the device's phone interface.
+      No backend API is called. No SMS is sent to 112. No confirmation is sent.
+      The user must complete the call themselves.
+    -->
+    <a href="tel:112" class="btn btn-danger btn-lg" id="call112Btn"
+       onclick="showCall112Toast()">
+      <svg data-lucide="phone-call"></svg>
+      Call 112
+    </a>
   </div>
-  <div class="sos-hero__right">
-    <!-- Big SOS Button -->
-    <div class="sos-btn-wrap">
-      <div class="sos-pulse">
-        <button class="sos-btn" id="sosButton" onclick="triggerSOS()">
-          <span class="sos-btn__text">SOS</span>
-          <span class="sos-btn__sub">Tap to Alert</span>
-        </button>
-      </div>
+
+  <!-- Channel 2: Share location -->
+  <div class="sos-channel sos-channel--info">
+    <div class="sos-channel__icon">
+      <svg data-lucide="map-pin" style="width:28px;height:28px;"></svg>
     </div>
+    <div class="sos-channel__body">
+      <div class="sos-channel__label">Share Location</div>
+      <div class="sos-channel__desc">Share GPS coordinates via link</div>
+    </div>
+    <button class="btn btn-ghost btn-lg" onclick="shareLocation()" id="shareLocBtn">
+      <svg data-lucide="share-2"></svg>
+      Share
+    </button>
   </div>
 </div>
 
-<!-- ===== LOCATION STATUS ===== -->
-<div class="sos-location-card card card-padded" id="locationCard">
-  <div class="card__header" style="margin-bottom:var(--sp-3);">
-    <div>
-      <div class="card__title">
-        <svg data-lucide="map-pin" style="width:16px;height:16px;display:inline;color:var(--primary);margin-right:6px;"></svg>
-        Your Location
+<!-- Location status strip -->
+<div class="sos-location-strip" id="locationCard">
+  <div style="display:flex;align-items:center;gap:var(--sp-3);">
+    <svg data-lucide="map-pin" style="width:14px;height:14px;color:var(--primary);flex-shrink:0;"></svg>
+    <div id="locationInfo" style="flex:1;">
+      <div style="display:flex;align-items:center;gap:var(--sp-2);">
+        <div class="spinner spinner-sm"></div>
+        <span style="font-size:var(--text-sm);color:var(--text-mid);">Detecting location…</span>
       </div>
     </div>
-    <span class="badge badge-neutral" id="locationStatus">Detecting...</span>
-  </div>
-  <div class="location-info" id="locationInfo">
-    <div style="display:flex;align-items:center;gap:var(--sp-3);">
-      <div class="spinner spinner-sm"></div>
-      <span style="font-size:var(--text-sm);color:var(--text-mid);">Detecting your location...</span>
-    </div>
+    <span class="badge badge-neutral" id="locationStatus">Detecting…</span>
   </div>
 </div>
 
-<!-- ===== MAIN GRID ===== -->
+<!-- ================================================================
+     MAIN GRID — Contacts + Nearby Hospitals
+     ================================================================ -->
 <div class="sos-grid">
 
   <!-- Emergency Contacts -->
@@ -66,22 +76,27 @@
     <div class="card__header">
       <div>
         <div class="card__title">Emergency Contacts</div>
-        <div class="card__subtitle">{{ contacts | length }} contact(s) saved</div>
+        <div class="card__subtitle">{{ contacts | length }} saved contact(s)</div>
       </div>
       <a href="{{ url_for('sos.add_emergency_contact') }}" class="btn btn-primary btn-sm">
         <svg data-lucide="user-plus"></svg> Add
       </a>
     </div>
+
     {% if contacts %}
     <div class="contact-list">
       {% for contact in contacts %}
       <div class="contact-item">
-        <div class="avatar avatar-md" style="background:linear-gradient(135deg,{% if loop.index == 1 %}var(--primary),var(--primary-dark){% elif loop.index == 2 %}var(--accent),#6D28D9{% else %}var(--info),#1D4ED8{% endif %});">
+        <div class="avatar avatar-md"
+             style="background:linear-gradient(135deg,
+               {% if loop.index == 1 %}var(--primary),var(--primary-dark)
+               {% elif loop.index == 2 %}var(--accent),#6D28D9
+               {% else %}var(--info),#1D4ED8{% endif %});">
           {{ contact.name[0] | upper }}
         </div>
         <div class="contact-item__body">
           <div class="contact-item__name">{{ contact.name }}</div>
-          <div class="contact-item__rel">{{ contact.relationship }}</div>
+          <div class="contact-item__rel">{{ contact.relationship or '—' }}</div>
           <a href="tel:{{ contact.phone_primary }}" class="contact-item__phone">
             <svg data-lucide="phone" style="width:12px;height:12px;"></svg>
             {{ contact.phone_primary }}
@@ -91,10 +106,12 @@
           {% if contact.is_primary %}
           <span class="badge badge-primary">Primary</span>
           {% endif %}
-          <a href="tel:{{ contact.phone_primary }}" class="btn btn-primary btn-icon btn-sm" title="Call">
+          <a href="tel:{{ contact.phone_primary }}"
+             class="btn btn-primary btn-icon btn-sm" title="Call contact">
             <svg data-lucide="phone" style="width:14px;height:14px;"></svg>
           </a>
-          <a href="{{ url_for('sos.edit_emergency_contact', id=contact.id) }}" class="btn btn-ghost btn-icon btn-sm" title="Edit">
+          <a href="{{ url_for('sos.edit_emergency_contact', id=contact.id) }}"
+             class="btn btn-ghost btn-icon btn-sm" title="Edit">
             <svg data-lucide="pencil" style="width:14px;height:14px;"></svg>
           </a>
         </div>
@@ -105,79 +122,45 @@
     <div class="empty-state" style="padding:var(--sp-8);">
       <svg data-lucide="users"></svg>
       <h3>No contacts yet</h3>
-      <p>Add emergency contacts who will be alerted during SOS.</p>
-      <a href="{{ url_for('sos.add_emergency_contact') }}" class="btn btn-primary" style="margin-top:var(--sp-4);">
+      <p>Add emergency contacts who will receive SMS alerts when you press SOS.</p>
+      <a href="{{ url_for('sos.add_emergency_contact') }}" class="btn btn-primary"
+         style="margin-top:var(--sp-4);">
         <svg data-lucide="user-plus"></svg> Add Contact
       </a>
     </div>
     {% endif %}
   </div>
 
-  <!-- Nearby Hospitals -->
+  <!-- Nearby Hospitals (loaded dynamically by sos.js after geolocation) -->
   <div class="card card-padded">
     <div class="card__header">
       <div>
         <div class="card__title">Nearby Hospitals</div>
-        <div class="card__subtitle">Within 10km radius</div>
+        <div class="card__subtitle" id="nearbyHospitalsSubtitle">Within 10 km radius</div>
       </div>
-      <a href="{{ url_for('sos.hospitals') }}" class="btn btn-ghost btn-sm">View Map</a>
+      <a href="{{ url_for('sos.hospitals') }}" class="btn btn-ghost btn-sm">View All</a>
     </div>
-    {% if hospitals %}
-    <div class="hospital-list-mini">
-      {% for hospital in hospitals[:5] %}
-      <div class="hospital-mini-item">
-        <div class="hospital-mini-icon">
-          <svg data-lucide="building-2" style="width:16px;height:16px;color:var(--info);"></svg>
-        </div>
-        <div class="hospital-mini-body">
-          <div class="hospital-mini-name">{{ hospital.name }}</div>
-          <div class="hospital-mini-addr">{{ hospital.city }}{% if hospital.state %}, {{ hospital.state }}{% endif %}</div>
-        </div>
-        <div class="hospital-mini-meta">
-          {% if hospital.emergency_services %}
-          <span class="badge badge-success">24/7</span>
-          {% endif %}
-          {% if hospital.phone %}
-          <a href="tel:{{ hospital.phone }}" class="btn btn-primary btn-icon btn-sm">
-            <svg data-lucide="phone" style="width:13px;height:13px;"></svg>
-          </a>
-          {% endif %}
-        </div>
+
+    <!-- Populated by sos.js after geolocation -->
+    <div id="nearbyHospitalsList">
+      <div style="display:flex;align-items:center;gap:var(--sp-3);padding:var(--sp-4);">
+        <div class="spinner spinner-sm"></div>
+        <span style="font-size:var(--text-sm);color:var(--text-mid);">Detecting location…</span>
       </div>
-      {% endfor %}
     </div>
-    {% else %}
-    <div class="empty-state" style="padding:var(--sp-8);">
-      <svg data-lucide="map-pin-off"></svg>
-      <h3>No hospitals found</h3>
-      <p>Enable location to find nearby hospitals.</p>
-    </div>
-    {% endif %}
-    <a href="{{ url_for('sos.hospitals') }}" class="btn btn-ghost w-full" style="margin-top:var(--sp-4);">
-      <svg data-lucide="map"></svg> View Full Map
+
+    <a href="{{ url_for('sos.hospitals') }}" class="btn btn-ghost w-full"
+       style="margin-top:var(--sp-4);">
+      <svg data-lucide="map"></svg> View Full Hospital Directory
     </a>
   </div>
 </div>
 
-<!-- ===== SOS COUNTDOWN OVERLAY ===== -->
-<div class="sos-overlay" id="sosOverlay">
-  <div class="sos-overlay__card anim-scale-in">
-    <div class="sos-overlay__icon">
-      <svg data-lucide="alert-triangle" style="width:48px;height:48px;color:white;"></svg>
-    </div>
-    <h2 style="color:white;margin-bottom:var(--sp-3);">Sending SOS Alert</h2>
-    <div class="sos-countdown" id="sosCountdown">3</div>
-    <p style="color:rgba(255,255,255,.8);font-size:var(--text-sm);">Alerting emergency contacts...</p>
-    <button class="btn" style="background:rgba(255,255,255,.2);color:white;margin-top:var(--sp-6);" onclick="cancelSOS()">
-      <svg data-lucide="x"></svg> Cancel
-    </button>
-  </div>
-</div>
 {% endblock %}
 
 {% block page_js %}
 <script src="{{ url_for('static', filename='js/sos.js') }}"></script>
 <script>
-  initSOS('{{ url_for("sos.trigger_sos") }}');
+  initSOS('{{ url_for("hospital.api_nearby") }}');
 </script>
 {% endblock %}

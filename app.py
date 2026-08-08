@@ -1,6 +1,6 @@
 from flask import Flask
 from flask import render_template
-from config import config
+from config import config, startup_diagnostics
 from database.db import db
 from flask_login import LoginManager
 from flask_migrate import Migrate
@@ -49,7 +49,7 @@ def create_app(config_name=None):
     @login_manager.user_loader
     def load_user(user_id):
         from models import User
-        return User.query.get(int(user_id))
+        return db.session.get(User, int(user_id))
 
     # Register template context processors
     @app.context_processor
@@ -103,5 +103,6 @@ def create_app(config_name=None):
 
 # For running the app directly
 app = create_app()
+startup_diagnostics()
 if __name__ == '__main__':
-    app.run(debug=True, host='0.0.0.0', port=5000)
+    app.run(debug=True, host='0.0.0.0', port=5000)
