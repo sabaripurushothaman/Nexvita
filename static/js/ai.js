@@ -11,6 +11,7 @@ let chatEndpoint   = '';
 let clearEndpoint  = '';
 let userInitial    = 'U';
 let isAtBottom     = true;
+let _isRequesting  = false;  // lock: prevents duplicate simultaneous requests
 
 /* ── Initialise ─────────────────────────────────────────────── */
 function initChatbot(endpoint, clearEp, initial) {
@@ -52,8 +53,15 @@ function initChatbot(endpoint, clearEp, initial) {
   // Form submit
   form.addEventListener('submit', async function (e) {
     e.preventDefault();
+    if (_isRequesting) return;  // lock: ignore if a request is already in-flight
     const msg = input.value.trim();
     if (!msg) return;
+
+    // Set in-flight lock and disable controls
+    _isRequesting = true;
+    sendBtn.disabled = true;
+    input.disabled = true;
+    sendBtn.style.opacity = '0.6';
 
     input.value = '';
     input.style.height = 'auto';
@@ -89,6 +97,13 @@ function initChatbot(endpoint, clearEp, initial) {
         '## ⚠️ Connection Error\nCould not reach the AI service. Please check your connection and try again.',
         new Date().toISOString()
       );
+    } finally {
+      // Always release lock and re-enable controls
+      _isRequesting = false;
+      sendBtn.disabled = false;
+      input.disabled = false;
+      sendBtn.style.opacity = '';
+      input.focus();
     }
 
     if (isAtBottom) scrollToBottom();
@@ -191,6 +206,7 @@ function scrollToBottom() {
 
 /* ── Suggestion chips ────────────────────────────────────────── */
 function sendSuggestion(btn) {
+  if (_isRequesting) return;  // ignore while a request is in flight
   const input = document.getElementById('chatInput');
   if (input) {
     input.value = btn.textContent.trim();

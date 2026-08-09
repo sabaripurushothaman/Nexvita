@@ -1,5 +1,4 @@
-from flask import Flask
-from flask import render_template
+from flask import Flask, render_template, redirect, url_for
 from config import config, startup_diagnostics
 from database.db import db
 from flask_login import LoginManager
@@ -7,6 +6,8 @@ from flask_migrate import Migrate
 from flask_cors import CORS
 import os
 from dotenv import load_dotenv
+from utils.helpers import format_date, format_datetime, calculate_age
+from utils.constants import USER_ROLES, HEALTH_RECORD_TYPES, BLOOD_TYPES
 
 # Load environment variables
 basedir = os.path.abspath(os.path.dirname(__file__))
@@ -22,7 +23,7 @@ def create_app(config_name=None):
 
     # Initialize extensions
     db.init_app(app)
-    migrate = Migrate(app, db)
+    Migrate(app, db)  # side-effect only; return value not needed
     login_manager = LoginManager()
     login_manager.init_app(app)
     login_manager.login_view = 'auth.login'
@@ -54,8 +55,6 @@ def create_app(config_name=None):
     # Register template context processors
     @app.context_processor
     def utility_processor():
-        from utils.helpers import format_date, format_datetime, calculate_age
-        from utils.constants import USER_ROLES, HEALTH_RECORD_TYPES, BLOOD_TYPES
         from flask_login import current_user
         active_reminders = 0
         try:
@@ -91,7 +90,7 @@ def create_app(config_name=None):
     def landing():
         from flask_login import current_user
         if current_user.is_authenticated:
-            return __import__('flask').redirect(__import__('flask').url_for('dashboard.index'))
+            return redirect(url_for('dashboard.index'))
         return render_template('index.html')
 
     # Create uploads directory if it doesn't exist
@@ -106,6 +105,6 @@ def create_app(config_name=None):
 
 # For running the app directly
 app = create_app()
-startup_diagnostics()
 if __name__ == '__main__':
+    startup_diagnostics()  # only print diagnostics when run directly, not on Gunicorn import
     app.run(debug=True, host='0.0.0.0', port=5000)

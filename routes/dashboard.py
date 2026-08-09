@@ -48,12 +48,14 @@ def index():
         HealthRecord.record_date >= week_ago
     ).order_by(HealthRecord.record_date).all()
 
-    # Prepare data for charts
-    dates = [r.record_date.strftime('%Y-%m-%d') for r in weekly_records]
-    systolic_bp = [r.systolic_bp for r in weekly_records if r.systolic_bp]
-    diastolic_bp = [r.diastolic_bp for r in weekly_records if r.diastolic_bp]
-    heart_rate = [r.heart_rate for r in weekly_records if r.heart_rate]
-    weight = [float(r.weight) for r in weekly_records if r.weight]
+    # Prepare data for charts — every dataset MUST be the same length as labels.
+    # Use None for missing vitals so Chart.js renders a gap rather than
+    # shifting data points to the wrong x-position.
+    dates        = [r.record_date.strftime('%Y-%m-%d') for r in weekly_records]
+    systolic_bp  = [r.systolic_bp  if r.systolic_bp  else None for r in weekly_records]
+    diastolic_bp = [r.diastolic_bp if r.diastolic_bp else None for r in weekly_records]
+    heart_rate   = [r.heart_rate   if r.heart_rate   else None for r in weekly_records]
+    weight       = [float(r.weight) if r.weight else None for r in weekly_records]
 
     chart_data = {
         'labels': dates,
@@ -106,3 +108,46 @@ def index():
 def profile():
     patient = Patient.query.filter_by(user_id=current_user.id).first()
     return render_template('dashboard/profile.html', patient=patient, user=current_user)
+
+
+@dashboard_bp.route('/chart-data')
+@login_required
+def chart_data_api():
+    """JSON endpoint — returns chart data for a given number of days.
+    Used by the period tab buttons (7 Days / 1 Month / 3 Months).
+    """
+    # Sanitise: only allow the three valid period values
+    try:
+        days = int(request.args.get('days', 7))
+    except (ValueError, TypeError):
+        days = 7
+    if days not in (7, 30, 90):
+        days = 7
+
+    since = datetime.now() - timedelta(days=days)
+    records = (
+        HealthRecord.query
+        .filter(
+            HealthRecord.user_id == current_user.id,
+            HealthRecord.record_date >= since,
+        )
+        .order_by(HealthRecord.record_date)
+        .all()
+    )
+
+    dates        = [r.record_date.strftime('%Y-%m-%d') for r in records]
+    systolic_bp  = [r.systolic_bp  if r.systolic_bp  else None for r in records]
+    diastolic_bp = [r.diastolic_bp if r.diastolic_bp else None for r in records]
+    heart_rate   = [r.heart_rate   if r.heart_rate   else None for r in records]
+    weight       = [float(r.weight) if r.weight else None for r in records]
+
+    return jsonify({
+        'labels': dates,
+        'period_days': days,
+        'datasets': [
+            {'label': 'Systolic BP',  'data': systolic_bp,  'borderColor': 'red',    'fill': False},
+            {'label': 'Diastolic BP', 'data': diastolic_bp, 'borderColor': 'blue',   'fill': False},
+            {'label': 'Heart Rate',   'data': heart_rate,   'borderColor': 'green',  'fill': False},
+            {'label': 'Weight (kg)',  'data': weight,       'borderColor': 'orange', 'fill': False},
+        ],
+    })

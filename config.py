@@ -64,6 +64,7 @@ def startup_diagnostics():
     Print a safe startup summary of key configuration values.
     NEVER prints actual secret values — only boolean presence.
     """
+    gemini_key = bool(os.environ.get('GEMINI_API_KEY', '').strip())
     geo_key    = bool(os.environ.get('GEOAPIFY_API_KEY', '').strip())
     twilio_sid = bool(os.environ.get('TWILIO_ACCOUNT_SID', '').strip())
     twilio_tok = bool(os.environ.get('TWILIO_AUTH_TOKEN', '').strip())
@@ -74,6 +75,7 @@ def startup_diagnostics():
     lines = [
         '',
         '--- NexVita Configuration Diagnostics ----------------------------',
+        f'  Gemini API key      : {"[OK] configured" if gemini_key else "[!!] NOT SET - AI assistant will be unavailable"}',
         f'  Geoapify API key    : {"[OK] configured" if geo_key else "[!!] NOT SET - hospital search will use Overpass fallback"}',
         f'  Hospital provider   : {provider}',
         f'  Hospital radius     : {radius} km',

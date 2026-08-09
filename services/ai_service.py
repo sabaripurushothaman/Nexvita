@@ -70,50 +70,126 @@ def _make_cache_key(prefix: str, text: str) -> str:
 # ── Gemini client factory ───────────────────────────────────────
 def _get_gemini_client():
     """Return a configured Gemini Client, or raise if not configured."""
-    api_key = os.environ.get('GEMINI_API_KEY')
+    api_key = os.environ.get('GEMINI_API_KEY', '').strip()
     if not api_key:
-        raise RuntimeError('GEMINI_API_KEY is not set in environment variables.')
+        logger.error('[AI] missing_configuration: GEMINI_API_KEY is not set or empty.')
+        raise RuntimeError('missing_configuration: GEMINI_API_KEY is not set in environment variables.')
     try:
-        from google import genai
-        return genai.Client(api_key=api_key)
-    except ImportError:
-        raise RuntimeError(
-            'google-genai package not installed. Run: pip install google-genai'
+        from google import genai  # type: ignore[import]
+        client = genai.Client(api_key=api_key)
+        return client
+    except ImportError as exc:
+        logger.error(
+            '[AI] missing_configuration: google-genai package is not installed. '
+            'Run: pip install "google-genai>=2.16.0". Error: %s', exc
         )
+        raise RuntimeError(
+            'missing_configuration: google-genai package not installed. '
+            'Run: pip install "google-genai>=2.16.0"'
+        ) from exc
 
 
 def _is_configured() -> bool:
-    return bool(os.environ.get('GEMINI_API_KEY'))
+    """Return True only if GEMINI_API_KEY is present and non-empty."""
+    return bool(os.environ.get('GEMINI_API_KEY', '').strip())
 
 
-MODEL = 'gemini-3.5-flash'   # Confirmed working with this API key
+MODEL = 'gemini-2.0-flash'  # google-genai SDK v2.x — confirmed available model
 
 
-# ── Error messages ──────────────────────────────────────────────
-def _api_error_response(error: Exception) -> str:
+# ── Error classification & messages ─────────────────────────────
+def _classify_error(error: Exception) -> str:
+    """
+    Classify an exception into one of 8 error-type strings.
+    Used for server-side logging only — never exposed to the browser.
+    """
     err_str = str(error).lower()
-    if 'api_key' in err_str or 'api key' in err_str or 'credential' in err_str:
-        return (
-            "## ⚠️ AI Service Not Configured\n\n"
-            "The Gemini API key is missing or invalid.\n\n"
-            "**To enable the AI assistant:**\n"
-            "1. Get a free API key from [Google AI Studio](https://aistudio.google.com)\n"
-            "2. Add `GEMINI_API_KEY=your_key` to your `.env` file\n"
-            "3. Restart the server\n\n"
-            "> Your key is never shared and stays on your server."
-        )
-    if 'quota' in err_str or 'rate' in err_str or 'limit' in err_str:
-        return (
-            "## ⏳ Rate Limit Reached\n\n"
-            "The AI service has reached its quota limit. "
-            "Please wait a minute and try again.\n\n"
-            "> If this persists, check your Google AI Studio quota."
-        )
-    return (
+    err_type = type(error).__name__.lower()
+
+    if 'missing_configuration' in err_str:
+        return 'missing_configuration'
+    if 'importerror' in err_type or 'modulenotfound' in err_type:
+        return 'missing_configuration'
+    if any(k in err_str for k in ('api_key', 'api key', 'credential', 'unauthenticated', '401', 'permission_denied', '403')):
+        return 'authentication_error'
+    if any(k in err_str for k in ('model not found', 'invalid_argument', 'not_found', '404', 'unknown model')):
+        return 'invalid_model'
+    if any(k in err_str for k in ('quota', 'rate_limit', 'resource_exhausted', '429', 'too many')):
+        return 'rate_limit'
+    if any(k in err_str for k in ('response', 'candidates', 'finish_reason', 'blocked', 'safety', 'attributeerror')):
+        return 'invalid_response'
+    if any(k in err_str for k in ('timeout', 'connection', 'network', 'ssl', 'socket', 'unreachable')):
+        return 'network_error'
+    if any(k in err_str for k in ('500', '502', '503', 'internal', 'service unavailable')):
+        return 'api_error'
+    return 'unknown_error'
+
+
+# User-facing messages per error category (no secrets)
+_USER_MESSAGES: dict[str, str] = {
+    'missing_configuration': (
+        "## 🔧 AI Assistant Not Configured\n\n"
+        "The Gemini API key is missing or the SDK is not installed.\n\n"
+        "**Setup:**\n"
+        "1. Get a free key from [Google AI Studio](https://aistudio.google.com)\n"
+        "2. Add `GEMINI_API_KEY=your_key` to your `.env` file\n"
+        "3. Restart the server\n\n"
+        "> Your key is never shared and stays on your server."
+    ),
+    'authentication_error': (
+        "## ⚠️ AI Service Authentication Failed\n\n"
+        "The Gemini API key appears to be invalid or expired.\n\n"
+        "**To fix:** Replace `GEMINI_API_KEY` in your `.env` with a valid key from "
+        "[Google AI Studio](https://aistudio.google.com) and restart the server."
+    ),
+    'invalid_model': (
+        "## ⚠️ AI Model Unavailable\n\n"
+        "The configured AI model could not be reached. "
+        "Please contact NexVita support."
+    ),
+    'rate_limit': (
+        "## ⏳ Rate Limit Reached\n\n"
+        "The AI service has reached its quota limit. "
+        "Please wait a minute and try again.\n\n"
+        "> If this persists, check your Google AI Studio quota."
+    ),
+    'invalid_response': (
+        "## ⚠️ AI Response Error\n\n"
+        "The AI returned an unexpected response. "
+        "Please try rephrasing your question."
+    ),
+    'network_error': (
+        "## 🌐 Connection Error\n\n"
+        "Unable to reach the AI service. "
+        "Please check your internet connection and try again."
+    ),
+    'api_error': (
+        "## ⚠️ AI Service Error\n\n"
+        "The AI service returned an error. Please try again in a moment."
+    ),
+    'unknown_error': (
         "## ⚠️ AI Service Unavailable\n\n"
         "I'm having trouble connecting right now. Please try again in a moment.\n\n"
         "> If the issue persists, please contact NexVita support."
+    ),
+}
+
+
+def _api_error_response(error: Exception) -> str:
+    """
+    Classify the exception, log the category server-side, and return a
+    safe user-facing message. Never leaks secrets or stack traces.
+    """
+    category = _classify_error(error)
+    # Log the category and sanitised error type — never the API key
+    logger.error(
+        '[AI] error_category=%s error_type=%s message=%s',
+        category,
+        type(error).__name__,
+        str(error)[:200],  # truncate to avoid overly verbose logs
+        exc_info=False,
     )
+    return _USER_MESSAGES.get(category, _USER_MESSAGES['unknown_error'])
 
 
 # ── Core helper: single Gemini generate call ───────────────────
@@ -269,7 +345,7 @@ class AIService:
             return self._unconfigured_message()
 
         try:
-            user = User.query.get(user_id)
+            user = db.session.get(User, user_id)
             user_ctx = build_user_context(user, patient, recent_records)
             prompt = build_risk_prompt(user_ctx)
             return _generate(SYSTEM_PROMPT, prompt, max_tokens=1000)
@@ -288,7 +364,7 @@ class AIService:
             return self._unconfigured_message()
 
         try:
-            user = User.query.get(user_id)
+            user = db.session.get(User, user_id)
             user_ctx = build_user_context(user, patient, recent_records)
             prompt = build_recommendations_prompt(user_ctx)
             return _generate(SYSTEM_PROMPT, prompt, max_tokens=1000)
@@ -307,7 +383,7 @@ class AIService:
             return self._unconfigured_message()
 
         try:
-            user = User.query.get(user_id)
+            user = db.session.get(User, user_id)
             user_ctx = build_user_context(user, patient, health_records[:10])
 
             # Summarise records as compact JSON
@@ -332,7 +408,7 @@ class AIService:
     # Private helpers
     # ──────────────────────────────────────────────────────────
     def _fetch_user_data(self, user_id: int):
-        user = User.query.get(user_id)
+        user = db.session.get(User, user_id)
         patient = Patient.query.filter_by(user_id=user_id).first() if user else None
         recent_records = (
             HealthRecord.query.filter_by(user_id=user_id)

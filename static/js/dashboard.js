@@ -90,12 +90,34 @@ function initHealthChart(canvasId, data) {
     },
   });
 
-  // Period tab buttons
+  // Period tab buttons — fetch real data for the selected period
   document.querySelectorAll('#chartTabs .tab-btn').forEach(btn => {
-    btn.addEventListener('click', function() {
+    btn.addEventListener('click', async function () {
+      if (this.classList.contains('active')) return;
       document.querySelectorAll('#chartTabs .tab-btn').forEach(b => b.classList.remove('active'));
       this.classList.add('active');
-      // Future: fetch data for period this.dataset.period
+
+      const days = parseInt(this.dataset.period, 10) || 7;
+      try {
+        const res  = await fetch(`/dashboard/chart-data?days=${days}`);
+        const json = await res.json();
+        if (!res.ok || json.error) return;
+
+        // Update chart labels and datasets
+        healthChart.data.labels = json.labels || [];
+        const datasets = buildDatasets(json);
+        healthChart.data.datasets = datasets;
+        healthChart.update();
+
+        // Show or hide empty-state overlay
+        const emptyEl = document.getElementById('chartEmpty');
+        if (emptyEl) {
+          emptyEl.style.display = (!json.labels || json.labels.length === 0) ? 'flex' : 'none';
+        }
+      } catch (err) {
+        // Silently ignore network errors on tab switch; existing data remains visible
+        console.warn('Chart period fetch failed:', err);
+      }
     });
   });
 }
