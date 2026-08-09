@@ -11,7 +11,7 @@ The platform enables users to securely manage health records, monitor personal h
 ## 🌐 Live Application
 
 **Live Website:**  
-https://YOUR-RENDER-URL.onrender.com
+https://nexvita.onrender.com
 
 > Replace the URL above with your actual Render deployment URL.
 
