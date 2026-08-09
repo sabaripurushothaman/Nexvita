@@ -33,6 +33,9 @@ def create_app(config_name=None):
     # Enable CORS
     CORS(app)
 
+    # ── Database tables (─moved above blueprint registration) ───────────
+    # db.create_all() now runs after blueprints — see below.
+
     # Register blueprints
     from routes import auth_bp, dashboard_bp, patient_bp, health_bp, ai_bp, sos_bp, hospital_bp, admin_bp, reminders_bp
 
@@ -45,6 +48,19 @@ def create_app(config_name=None):
     app.register_blueprint(hospital_bp)
     app.register_blueprint(admin_bp)
     app.register_blueprint(reminders_bp)
+
+    # ── Ensure all database tables exist ─────────────────────────────────────
+    # db.create_all() is idempotent — it only creates tables that do not yet
+    # exist, and is a complete no-op on a database that already has all tables.
+    # On a fresh Render/PostgreSQL deployment this creates users, reminders,
+    # health_records, etc. before the first request arrives.
+    # IMPORTANT: this must run AFTER blueprints are registered so all models
+    # are imported and present in SQLAlchemy’s metadata.
+    with app.app_context():
+        # Explicitly import all models to populate db.metadata
+        from models import User, Patient, HealthRecord, EmergencyContact  # noqa: F401
+        from models import Hospital, AIHistory, Reminder                  # noqa: F401
+        db.create_all()
 
     # User loader for Flask-Login
     @login_manager.user_loader
@@ -76,6 +92,9 @@ def create_app(config_name=None):
         )
 
     # Error handlers
+    import logging as _logging
+    _err_logger = _logging.getLogger('nexvita.errors')
+
     @app.errorhandler(404)
     def not_found_error(error):
         return render_template('errors/404.html'), 404
@@ -83,6 +102,7 @@ def create_app(config_name=None):
     @app.errorhandler(500)
     def internal_error(error):
         db.session.rollback()
+        _err_logger.exception('[500] Internal server error: %s', error)
         return render_template('errors/500.html'), 500
 
     # Root landing page
@@ -103,8 +123,8 @@ def create_app(config_name=None):
 
     return app
 
-# For running the app directly
+# For running the app directly or via Gunicorn
 app = create_app()
+startup_diagnostics()  # always print config at boot (both local and Render/Gunicorn)
 if __name__ == '__main__':
-    startup_diagnostics()  # only print diagnostics when run directly, not on Gunicorn import
     app.run(debug=True, host='0.0.0.0', port=5000)
